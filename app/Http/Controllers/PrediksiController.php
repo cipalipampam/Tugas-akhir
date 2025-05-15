@@ -9,10 +9,17 @@ use App\Models\DistanceCalculation;
 use App\Models\WeightCalculation;
 use App\Models\WeightRatio;
 use App\Models\Prediction;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\Log;
 
 class PrediksiController extends Controller
 {
+   
+    public function index()
+{
+    return view('pages.prediksi');
+}
     public function showResult($id)
     {
         $testStudent = Student::with('studentValues')->findOrFail($id);
@@ -28,7 +35,7 @@ class PrediksiController extends Controller
                 'nama' => $data->trainingStudent->name ?? '-',
                 'distance' => $data->distance,
                 'weight' => optional($data->weightCalculation)->weight,
-                'predicted_status' => optional($data->trainingStudent->prediction)->predicted_status ?? '-' // atau info lain jika perlu
+                'true_status' => optional($data->trainingStudent)->true_status ?? '-'
             ];
         });
 
@@ -65,7 +72,6 @@ class PrediksiController extends Controller
             ->with('success', 'Prediksi berhasil dilakukan.');
     }
 
-    // Fungsi untuk normalisasi nilai
     private function normalize($value, $min, $max)
     {
         // Pastikan bahwa nilai-nilai ini adalah tipe numerik (float atau int)
@@ -101,7 +107,6 @@ class PrediksiController extends Controller
         return $normalizedValues;
     }
     
-
     private function getMinMaxPerFeatureFromTraining()
     {
         $trainingStudents = Student::where('jenis_data', 'training')
@@ -217,7 +222,6 @@ class PrediksiController extends Controller
         ]);
     }
 
-
     private function convertToNumeric($value)
     {
         $map = [
@@ -250,4 +254,110 @@ class PrediksiController extends Controller
         return sqrt($sum);
     }
 
+    public function uploadExcelDanPrediksi(Request $request)
+    {
+        try {
+            if (!$request->hasFile('excel_file')) {
+                return response()->json(['status' => 'error', 'message' => 'File tidak ditemukan pada request!']);
+            }
+
+            $file = $request->file('excel_file');
+            $k = $request->input('k_value'); // Get K value from request without default
+            
+            // Ensure k_value is provided
+            if (empty($k)) {
+                return back()->with('error', 'Nilai K harus diisi!');
+            }
+            
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $worksheet = $spreadsheet->getActiveSheet();
+
+            $rows = [];
+            foreach ($worksheet->getRowIterator() as $index => $row) {
+                $cellIterator = $row->getCellIterator();
+                $cellIterator->setIterateOnlyExistingCells(false);
+                $cells = [];
+
+                foreach ($cellIterator as $cell) {
+                    $cells[] = $cell->getFormattedValue();
+                }
+
+                if (array_filter($cells)) {
+                    $rows[] = $cells;
+                }
+            }
+
+            if (count($rows) < 2) {
+                return response()->json(['status' => 'error', 'message' => 'Data tidak cukup (minimal header dan satu baris data).']);
+            }
+
+            $headers = $rows[0];
+            $dataRows = array_slice($rows, 1);
+            $formattedRows = [];
+
+            foreach ($dataRows as $dataRow) {
+                $formatted = [];
+                foreach ($headers as $i => $header) {
+                    $formatted[$header] = $dataRow[$i] ?? '';
+                }
+                $formattedRows[] = $formatted;
+            }
+
+            DB::beginTransaction();
+            $insertedStudents = [];
+
+            foreach ($formattedRows as $row) {
+                $name = trim($row['nama'] ?? '');
+                $nisn = trim($row['nisn'] ?? '');
+
+                if ($name === '' || $nisn === '') {
+                    continue;
+                }
+
+                // Simpan siswa sebagai testing
+                $student = Student::create([
+                    'nisn' => $nisn,
+                    'name' => $name,
+                    'true_status' => null,
+                    'jenis_data' => 'testing',
+                ]);
+
+                // Simpan nilai-nilai atribut
+                foreach ($row as $key => $value) {
+                    if (in_array($key, ['nama', 'nisn', 'status', 'jenis_data'])) continue;
+
+                    if (trim($key) !== '' && $value !== null) {
+                        StudentValue::create([
+                            'student_id' => $student->id,
+                            'key' => trim($key),
+                            'value' => trim($value),
+                        ]);
+                    }
+                }
+
+                $insertedStudents[] = $student;
+            }
+
+            DB::commit();
+
+            // Jalankan prediksi untuk setiap siswa yang baru diinsert
+            foreach ($insertedStudents as $testStudent) {
+                // Call the predictForStudent method with the k value from form
+                $this->predictForStudent($testStudent, $k);
+            }
+
+            // If we have at least one student, redirect to the result page for the first student
+            if (count($insertedStudents) > 0) {
+                return redirect()->route('prediction.result', ['id' => $insertedStudents[0]->id])
+                    ->with('success', 'Data Excel berhasil diproses dan diprediksi.');
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Data berhasil diproses dan diprediksi.']);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Upload & Prediksi Error: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
 }

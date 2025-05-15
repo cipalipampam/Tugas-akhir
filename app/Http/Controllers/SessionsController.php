@@ -24,7 +24,7 @@ class SessionsController extends Controller
             'password' => 'required'
         ]);
 
-        if (! auth()->attempt($attributes)) {
+        if (!auth()->attempt($attributes)) {
             throw ValidationException::withMessages([
                 'email' => 'Your provided credentials could not be verified.'
             ]);
@@ -32,8 +32,7 @@ class SessionsController extends Controller
 
         session()->regenerate();
 
-        return redirect('/dashboard');
-
+        return redirect()->intended('/dashboard')->with('success', 'Welcome back!');
     }
 
     public function show(){
@@ -81,7 +80,7 @@ class SessionsController extends Controller
     {
         auth()->logout();
 
-        return redirect('/sign-in');
+        return redirect('/');
     }
 
 }

@@ -11,6 +11,10 @@ use Log;
 
 class InputDataController extends Controller
 {
+public function index()
+{
+    return view('pages.input-data');
+}
     public function preview(Request $request)
     {
         try {

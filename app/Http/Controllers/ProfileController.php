@@ -52,14 +52,19 @@ class ProfileController extends Controller
         return view('pages.prediksi');
     }
 
-    public function virtualReality()
+    public function visualisasiData()
     {
-        return view('pages.virtual-reality');
+        return view('pages.visualisasi-data');
     }
 
     public function rtl()
     {
         return view('pages.rtl');
+    }
+
+    public function export()
+    {
+        return view('pages.export');
     }
 
     public function notifications()
