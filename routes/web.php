@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PerformaController;
 use App\Http\Controllers\PrediksiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
@@ -33,17 +34,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/input-data', [ProfileController::class, 'inputData'])->name('input-data');
     Route::post('/preview-excel', [InputDataController::class, 'preview'])->name('preview.excel');
     Route::post('/simpan-data', [InputDataController::class, 'simpanData'])->name('simpan.data');
-    Route::get('/prediksi', [ProfileController::class, 'prediksi'])->name('prediksi');
+    Route::get('/prediksi', [PrediksiController::class, 'index'])->name('prediksi');
     Route::post('/prediksi', [PrediksiController::class, 'processAndPredict'])->name('prediction.process');
     Route::get('/prediksi/hasil/{id}', [PrediksiController::class, 'showResult'])->name('prediction.result');
     Route::post('/prediksi/upload-excel', [PrediksiController::class, 'uploadExcelDanPrediksi'])->name('prediction.upload.excel');
-    Route::get('/template/download', [PrediksiController::class, 'download'])->name('template.download');
+    Route::get('/template/download', function () {
+        $path = public_path('templates/template_data_siswa.xlsx');
+        return response()->download($path, 'template_data_siswa.xlsx');
+    })->name('template.download');
+    Route::get('/performa', [PerformaController::class, 'index'])->name('performa');
+    Route::post('/performa/evaluate', [PerformaController::class, 'evaluate'])->name('performa.evaluate');
     Route::get('/visualisasi-data', [VisualisasiController::class, 'index'])->name('visualisasi-data');
-    Route::get('/rtl', [ProfileController::class, 'rtl'])->name('rtl');
     Route::get('/export', [ExportController::class, 'index'])->name('export');
     Route::post('/export', [ExportController::class, 'export'])->name('export.process');
     Route::get('/profile', [ProfileController::class, 'profile'])->name('profile');
     Route::get('/static-sign-in', [ProfileController::class, 'staticSignIn'])->name('static-sign-in');
     Route::get('/static-sign-up', [ProfileController::class, 'staticSignUp'])->name('static-sign-up');
     Route::post('/logout', [SessionsController::class, 'destroy'])->name('logout');
+    Route::get('/download-template', [InputDataController::class, 'downloadTemplate'])->name('download.template');
 });

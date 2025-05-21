@@ -31,45 +31,45 @@
 
                 <div class="row">
                     <div class="col-12 col-xl-6">
-                        <div class="card card-plain h-100">
-                            <div class="card-header pb-0 p-3">
-                                <div class="row">
-                                    <div class="col-md-8 d-flex align-items-center">
+                            <div class="card card-plain h-100">
+                                <div class="card-header pb-0 p-3">
+                                    <div class="row">
+                                        <div class="col-md-8 d-flex align-items-center">
                                         <h6 class="mb-0">Informasi Profil</h6>
-                                    </div>
-                                    <div class="col-md-4 text-end">
+                                        </div>
+                                        <div class="col-md-4 text-end">
                                         <a href="javascript:;" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
                                             <i class="fas fa-user-edit text-white"></i> Edit Profil
-                                        </a>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-body p-3">
-                                <hr class="horizontal gray-light my-4">
-                                <ul class="list-group">
+                                <div class="card-body p-3">
+                                    <hr class="horizontal gray-light my-4">
+                                    <ul class="list-group">
                                     <li class="list-group-item border-0 ps-0 pt-0 text-sm">
                                         <strong class="text-dark">Nama Lengkap:</strong> &nbsp; {{ auth()->user()->name }}
-                                    </li>
+                                        </li>
                                     <li class="list-group-item border-0 ps-0 text-sm">
                                         <strong class="text-dark">Email:</strong> &nbsp; {{ auth()->user()->email }}
-                                    </li>
+                                        </li>
                                     <li class="list-group-item border-0 ps-0 text-sm">
                                         <strong class="text-dark">No. Telepon:</strong> &nbsp; {{ auth()->user()->phone ?? '-' }}
-                                    </li>
+                                        </li>
                                     <li class="list-group-item border-0 ps-0 text-sm">
                                         <strong class="text-dark">Lokasi:</strong> &nbsp; {{ auth()->user()->location ?? '-' }}
-                                    </li>
-                                </ul>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
                     <div class="col-12 col-xl-6">
                         <div class="card card-plain h-100">
                             <div class="card-header pb-0 p-3">
                                 <h6 class="mb-0">Pengaturan Akun</h6>
-                            </div>
-                            <div class="card-body p-3">
+                                        </div>
+                                        <div class="card-body p-3">
                                 <h6 class="text-uppercase text-body text-xs font-weight-bolder">Notifikasi</h6>
                                 <ul class="list-group">
                                     <li class="list-group-item border-0 px-0">

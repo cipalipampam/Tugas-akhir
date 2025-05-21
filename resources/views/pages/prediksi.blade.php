@@ -137,7 +137,7 @@
                                                                             </td>
                                                                             <td>
                                                                                 <input type="number" step="0.01"
-                                                                                    name="data[Rata-Rata Semester {{ $i }}]"
+                                                                                    name="data[semester_{{ $i }}]"
                                                                                     class="form-control form-control-sm"
                                                                                     placeholder="0.00">
                                                                             </td>
@@ -419,7 +419,7 @@
 
                 // Validate manual inputs
                 let valid = true;
-                const semesterInputs = document.querySelectorAll('input[name^="data[Rata-Rata Semester"]');
+                const semesterInputs = document.querySelectorAll('input[name^="data[semester_"]');
                 semesterInputs.forEach(input => {
                     if (!input.value) {
                         valid = false;

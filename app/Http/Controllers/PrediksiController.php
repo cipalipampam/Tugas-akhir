@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Log;
 
 class PrediksiController extends Controller
 {
-   
+
     public function index()
-{
-    return view('pages.prediksi');
-}
+    {
+        return view('pages.prediksi');
+    }
     public function showResult($id)
     {
         $testStudent = Student::with('studentValues')->findOrFail($id);
@@ -45,96 +45,111 @@ class PrediksiController extends Controller
     public function processAndPredict(Request $request)
     {
         $data = $request->input('data');
-        $k = $request->input('k_value'); // Tambahan ambil nilai K
+        $k = $request->input('k_value', 5);  // Default K value to 5 if not provided
 
         if (!$data || !is_array($data)) {
             return back()->with('error', 'Input data tidak valid.');
         }
 
+        // Extract name and NISN
+        $name = $data['nama'] ?? '';
+        $nisn = $data['nisn'] ?? '';
+
+        if (empty($name) || empty($nisn)) {
+            return back()->with('error', 'Nama dan NISN harus diisi.');
+        }
+
         $testStudent = Student::create([
-            'nisn' => 'test_' . time(),
-            'name' => 'Siswa Uji Coba',
+            'nisn' => $nisn,
+            'name' => $name,
             'jenis_data' => 'testing',
             'true_status' => null
         ]);
 
+        // Remove name and NISN from data before creating student values
+        unset($data['nama'], $data['nisn']);
+
+        // Create student values for remaining data
         foreach ($data as $key => $value) {
+            if (trim($key) !== '' && $value !== null) {
             StudentValue::create([
                 'student_id' => $testStudent->id,
                 'key' => $key,
                 'value' => $value
             ]);
+            }
         }
 
-        $this->predictForStudent($testStudent, $k); // Kirim nilai K
+        $this->predictForStudent($testStudent, $k);
 
         return redirect()->route('prediction.result', ['id' => $testStudent->id])
             ->with('success', 'Prediksi berhasil dilakukan.');
     }
 
-    private function normalize($value, $min, $max)
-    {
-        // Pastikan bahwa nilai-nilai ini adalah tipe numerik (float atau int)
-        $value = floatval($value);
-        $min = floatval($min);
-        $max = floatval($max);
+private function normalize($value, $min, $max)
+{
+    $value = floatval($value);
+    $min = floatval($min);
+    $max = floatval($max);
 
-        // Cek jika $min dan $max bukan 0 untuk menghindari pembagian dengan 0
-        if ($max - $min == 0) {
-            return 0;  // Hindari pembagian dengan nol
-        }
-
-        return ($value - $min) / ($max - $min);
+    if ($max - $min == 0) {
+        return 0; // Hindari pembagian dengan nol
     }
 
-    private function processAndNormalizeData($studentValues, $minMax)
-    {
-        $normalizedValues = [];
-    
-        foreach ($studentValues as $key => $value) {
-            $val = $this->convertToNumeric($value);
-    
-            if (isset($minMax[$key])) {
-                $min = $minMax[$key]['min'];
-                $max = $minMax[$key]['max'];
-                $normalizedValues[$key] = $this->normalize($val, $min, $max);
-            } else {
-                // Jika tidak ditemukan min/max, nilai tetap 0
-                $normalizedValues[$key] = 0;
-            }
+    // Normalisasi dan batasi hasil antara 0 dan 1
+    $normalized = ($value - $min) / ($max - $min);
+    return max(0, min(1, $normalized));
+}
+
+private function processAndNormalizeData($studentValues, $minMax)
+{
+    $normalizedValues = [];
+
+    foreach ($studentValues as $key => $value) {
+        $val = $this->convertToNumeric($value);
+
+        if (isset($minMax[$key])) {
+            $min = $minMax[$key]['min'];
+            $max = $minMax[$key]['max'];
+            $normalizedValues[$key] = $this->normalize($val, $min, $max);
+        } else {
+            // Jika min/max tidak ditemukan, diasumsikan 0 (netral)
+            $normalizedValues[$key] = 0;
         }
-    
-        return $normalizedValues;
     }
-    
-    private function getMinMaxPerFeatureFromTraining()
-    {
-        $trainingStudents = Student::where('jenis_data', 'training')
-            ->whereNotNull('true_status')
-            ->with('studentValues')
-            ->get();
 
-        $featureGroups = [];
+    return $normalizedValues;
+}
 
-        foreach ($trainingStudents as $student) {
-            foreach ($student->studentValues as $value) {
-                $key = $value->key;
-                $numericValue = $this->convertToNumeric($value->value);
-                $featureGroups[$key][] = $numericValue;
-            }
+private function getMinMaxPerFeatureFromTraining()
+{
+    $trainingStudents = Student::where('jenis_data', 'training')
+        ->whereNotNull('true_status')
+        ->with('studentValues')
+        ->get();
+
+    $featureGroups = [];
+
+    foreach ($trainingStudents as $student) {
+        foreach ($student->studentValues as $value) {
+            $key = $value->key;
+            $numericValue = $this->convertToNumeric($value->value);
+            $featureGroups[$key][] = $numericValue;
         }
-
-        $minMax = [];
-
-        foreach ($featureGroups as $key => $values) {
-            $minMax[$key] = [
-                'min' => min($values),
-                'max' => max($values)
-            ];
-        }
-
-        return $minMax;
     }
+
+    $minMax = [];
+
+    foreach ($featureGroups as $key => $values) {
+        $minMax[$key] = [
+            'min' => min($values),
+            'max' => max($values)
+        ];
+    }
+
+    return $minMax;
+}
+
 
     private function predictForStudent($testStudent, $k = 5)
     {
@@ -144,7 +159,7 @@ class PrediksiController extends Controller
         if (empty($minMax)) {
             \Log::error('MinMax data kosong, pastikan data latih sudah ada.');
             return;
-        } 
+        }
 
 
         $testValues = $testStudent->studentValues->pluck('value', 'key');
@@ -188,12 +203,16 @@ class PrediksiController extends Controller
                 'distance' => $distance
             ]);
 
-            $weight = $distance > 0 ? 1 / ($distance * $distance) : 999999;
+            $epsilon = 0.01; // nilai kecil untuk menghindari pembagian nol atau angka sangat kecil
+            $adjustedDistance = $distance + $epsilon;
+
+            $weight = 1 / ($adjustedDistance * $adjustedDistance);
 
             WeightCalculation::create([
                 'distance_calculation_id' => $distanceCalc->id,
                 'weight' => $weight
             ]);
+
 
             $status = $train->true_status;
             if ($status && isset($classWeights[$status])) {
@@ -226,8 +245,8 @@ class PrediksiController extends Controller
     {
         $map = [
             'baik' => 3,
-            'cukup baik' => 2,
-            'kurang baik' => 1
+            'cukup' => 2,
+            'kurang' => 1
         ];
 
         if (is_numeric($value)) {
@@ -262,13 +281,14 @@ class PrediksiController extends Controller
             }
 
             $file = $request->file('excel_file');
-            $k = $request->input('k_value'); // Get K value from request without default
-            
-            // Ensure k_value is provided
-            if (empty($k)) {
-                return back()->with('error', 'Nilai K harus diisi!');
+            $k = 5; // Fixed K value
+
+            // Validate file extension
+            $extension = $file->getClientOriginalExtension();
+            if (!in_array($extension, ['xlsx', 'xls', 'csv'])) {
+                return back()->with('error', 'Format file tidak didukung. Gunakan file Excel (.xlsx, .xls) atau CSV.');
             }
-            
+
             $spreadsheet = IOFactory::load($file->getPathname());
             $worksheet = $spreadsheet->getActiveSheet();
 
@@ -288,23 +308,32 @@ class PrediksiController extends Controller
             }
 
             if (count($rows) < 2) {
-                return response()->json(['status' => 'error', 'message' => 'Data tidak cukup (minimal header dan satu baris data).']);
+                return back()->with('error', 'Data tidak cukup (minimal header dan satu baris data).');
             }
 
             $headers = $rows[0];
             $dataRows = array_slice($rows, 1);
             $formattedRows = [];
 
+            // Validate required headers
+            $requiredHeaders = ['nama', 'nisn', 'semester_1', 'semester_2', 'semester_3', 'semester_4', 'semester_5', 'semester_6', 'usp', 'sikap', 'kerapian', 'kerajinan'];
+            $missingHeaders = array_diff($requiredHeaders, array_map('strtolower', $headers));
+            
+            if (!empty($missingHeaders)) {
+                return back()->with('error', 'Format Excel tidak sesuai. Header yang diperlukan: ' . implode(', ', $missingHeaders));
+            }
+
             foreach ($dataRows as $dataRow) {
                 $formatted = [];
                 foreach ($headers as $i => $header) {
-                    $formatted[$header] = $dataRow[$i] ?? '';
+                    $formatted[strtolower(trim($header))] = trim($dataRow[$i] ?? '');
                 }
                 $formattedRows[] = $formatted;
             }
 
             DB::beginTransaction();
             $insertedStudents = [];
+            $existingNISNs = [];
 
             foreach ($formattedRows as $row) {
                 $name = trim($row['nama'] ?? '');
@@ -312,6 +341,19 @@ class PrediksiController extends Controller
 
                 if ($name === '' || $nisn === '') {
                     continue;
+                }
+
+                // Check for duplicate NISN
+                if (in_array($nisn, $existingNISNs)) {
+                    DB::rollback();
+                    return back()->with('error', "NISN duplikat ditemukan: $nisn");
+                }
+                $existingNISNs[] = $nisn;
+
+                // Check if NISN already exists in database
+                if (Student::where('nisn', $nisn)->exists()) {
+                    DB::rollback();
+                    return back()->with('error', "NISN sudah terdaftar: $nisn");
                 }
 
                 // Simpan siswa sebagai testing
@@ -322,11 +364,10 @@ class PrediksiController extends Controller
                     'jenis_data' => 'testing',
                 ]);
 
-                // Simpan nilai-nilai atribut
+                // Simpan nilai-nilai atribut (kecuali nama dan NISN)
+                $excludedFields = ['nama', 'nisn', 'status', 'jenis_data'];
                 foreach ($row as $key => $value) {
-                    if (in_array($key, ['nama', 'nisn', 'status', 'jenis_data'])) continue;
-
-                    if (trim($key) !== '' && $value !== null) {
+                    if (!in_array(strtolower(trim($key)), $excludedFields) && trim($key) !== '' && $value !== null) {
                         StudentValue::create([
                             'student_id' => $student->id,
                             'key' => trim($key),
@@ -338,11 +379,15 @@ class PrediksiController extends Controller
                 $insertedStudents[] = $student;
             }
 
+            if (empty($insertedStudents)) {
+                DB::rollback();
+                return back()->with('error', 'Tidak ada data valid yang dapat diproses.');
+            }
+
             DB::commit();
 
             // Jalankan prediksi untuk setiap siswa yang baru diinsert
             foreach ($insertedStudents as $testStudent) {
-                // Call the predictForStudent method with the k value from form
                 $this->predictForStudent($testStudent, $k);
             }
 

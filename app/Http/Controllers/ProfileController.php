@@ -6,11 +6,6 @@ use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
-    public function login()
-    {
-        return view('sessions.create');
-    }
-
     public function verify()
     {
         return view('sessions.password.verify');
@@ -25,11 +20,6 @@ class ProfileController extends Controller
     public function register()
     {
         return view('register.create');
-    }
-
-    public function dashboard()
-    {
-        return view('dashboard.index');
     }
 
     public function create()
@@ -47,31 +37,6 @@ class ProfileController extends Controller
         return view('pages.input-data');
     }
 
-    public function prediksi()
-    {
-        return view('pages.prediksi');
-    }
-
-    public function visualisasiData()
-    {
-        return view('pages.visualisasi-data');
-    }
-
-    public function rtl()
-    {
-        return view('pages.rtl');
-    }
-
-    public function export()
-    {
-        return view('pages.export');
-    }
-
-    public function notifications()
-    {
-        return view('pages.notifications');
-    }
-
     public function profile()
     {
         return view('pages.profile');
@@ -86,13 +51,6 @@ class ProfileController extends Controller
     {
         return view('pages.static-sign-up');
     }
-
-    public function logout()
-    {
-        auth()->logout();
-        return redirect('/static-sign-in');
-    }
-
 
     public function update()
     {

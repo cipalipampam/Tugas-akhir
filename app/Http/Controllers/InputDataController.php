@@ -139,5 +139,21 @@ public function index()
             return response()->json(['status' => 'error', 'message' => 'Gagal menyimpan data: ' . $e->getMessage()]);
         }
     }
+
+    public function downloadTemplate()
+    {
+        $path = public_path('templates/template_data_latih.xlsx');
+        
+        if (!file_exists($path)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Template file tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->download($path, 'template_data_latih.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
     
 }

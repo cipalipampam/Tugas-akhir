@@ -38,7 +38,7 @@ class DashboardController extends Controller
         // Calculate average values per semester
         $semesterAverages = [];
         for ($i = 1; $i <= 6; $i++) {
-            $semesterAverages["Semester $i"] = StudentValue::where('key', "Rata-Rata Semester $i")
+            $semesterAverages["Semester $i"] = StudentValue::where('key', "semester_$i")
                 ->where('value', '!=', '')
                 ->avg(DB::raw('CAST(value AS DECIMAL(10,2))')) ?? 0;
         }
@@ -65,7 +65,7 @@ class DashboardController extends Controller
             
             $averages = [];
             for ($i = 1; $i <= 6; $i++) {
-                $query = StudentValue::where('key', "Rata-Rata Semester $i")
+                $query = StudentValue::where('key', "semester_$i")
                     ->where('value', '!=', '');
                     
                 if (!empty($studentIds)) {
