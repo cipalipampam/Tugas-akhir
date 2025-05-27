@@ -32,7 +32,7 @@ class ExportController extends Controller
         try {
             // Validate the request
             $request->validate([
-                'fileFormat' => 'required|in:pdf,excel,csv,print',
+                'fileFormat' => 'required|in:pdf,csv',
                 'dataType' => 'required|in:all,passed,failed,prediction',
                 'title' => 'nullable|string|max:255',
                 'schoolYear' => 'nullable|string|max:20',
@@ -56,12 +56,8 @@ class ExportController extends Controller
             switch ($request->fileFormat) {
                 case 'pdf':
                     return $this->exportPdf($data, $includedColumns, $request->title, $request->schoolYear);
-                case 'excel':
-                    return $this->exportExcel($data, $includedColumns, $request->title, $request->schoolYear);
                 case 'csv':
                     return $this->exportCsv($data, $includedColumns, $request->title, $request->schoolYear);
-                case 'print':
-                    return $this->exportPrint($data, $includedColumns, $request->title, $request->schoolYear);
                 default:
                     return back()->with('error', 'Format tidak valid');
             }
@@ -122,12 +118,12 @@ class ExportController extends Controller
         
         if ($request->has('includeGrades')) {
             $columns = array_merge($columns, [
-                'Rata-Rata Semester 1',
-                'Rata-Rata Semester 2',
-                'Rata-Rata Semester 3',
-                'Rata-Rata Semester 4',
-                'Rata-Rata Semester 5',
-                'Rata-Rata Semester 6',
+                'semester_1',
+                'semester_2',
+                'semester_3',
+                'semester_4',
+                'semester_5',
+                'semester_6',
                 'usp'
             ]);
         }
@@ -164,71 +160,6 @@ class ExportController extends Controller
             return $pdf->download(($title ?: 'Laporan_Data_Siswa') . '.pdf');
         } catch (Exception $e) {
             throw new Exception('Gagal mengekspor PDF: ' . $e->getMessage());
-        }
-    }
-    
-    private function exportExcel($data, $columns, $title, $schoolYear)
-    {
-        try {
-            $formattedData = $this->formatDataForExport($data, $columns);
-            
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            
-            // Add title and school year
-            $sheet->mergeCells('A1:' . $sheet->getHighestColumn() . '1');
-            $sheet->setCellValue('A1', $title ?: 'Laporan Data Siswa');
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-            $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            
-            $sheet->mergeCells('A2:' . $sheet->getHighestColumn() . '2');
-            $sheet->setCellValue('A2', 'Tahun Ajaran: ' . ($schoolYear ?: date('Y')));
-            $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            
-            // Add headers
-            $col = 1;
-            foreach ($columns as $column) {
-                $sheet->setCellValueByColumnAndRow($col, 3, ucwords(str_replace('_', ' ', $column)));
-                $sheet->getStyleByColumnAndRow($col, 3)->getFont()->setBold(true);
-                $col++;
-            }
-            
-            // Add data
-            $row = 4;
-            foreach ($formattedData as $item) {
-                $col = 1;
-                foreach ($columns as $column) {
-                    $sheet->setCellValueByColumnAndRow($col, $row, $item[$column] ?? '');
-                    $col++;
-                }
-                $row++;
-            }
-            
-            // Auto-size columns
-            foreach (range('A', $sheet->getHighestColumn()) as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
-            }
-            
-            // Add borders
-            $lastRow = $row - 1;
-            $lastCol = $sheet->getHighestColumn();
-            $sheet->getStyle('A3:' . $lastCol . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-            
-            // Create writer
-            $writer = new Xlsx($spreadsheet);
-            $filename = ($title ?: 'Laporan_Data_Siswa') . '.xlsx';
-            $filepath = storage_path('app/public/' . $filename);
-            
-            // Save file
-            $writer->save($filepath);
-            
-            $this->saveExportHistory('excel', $title);
-            
-            return Response::download($filepath, $filename, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            ])->deleteFileAfterSend(true);
-        } catch (Exception $e) {
-            throw new Exception('Gagal mengekspor Excel: ' . $e->getMessage());
         }
     }
     
@@ -273,30 +204,6 @@ class ExportController extends Controller
             ])->deleteFileAfterSend(true);
         } catch (Exception $e) {
             throw new Exception('Gagal mengekspor CSV: ' . $e->getMessage());
-        }
-    }
-    
-    private function exportPrint($data, $columns, $title, $schoolYear)
-    {
-        try {
-            $formattedData = $this->formatDataForExport($data, $columns);
-            
-            // Add print-specific data
-            $printData = [
-                'data' => $formattedData,
-                'columns' => $columns,
-                'title' => $title ?: 'Laporan Data Siswa',
-                'schoolYear' => $schoolYear ?: date('Y'),
-                'printDate' => date('d/m/Y H:i:s'),
-                'totalRecords' => count($formattedData)
-            ];
-            
-            // Save export history
-            $this->saveExportHistory('print', $title);
-            
-            return view('exports.print', $printData);
-        } catch (Exception $e) {
-            throw new Exception('Gagal mengekspor Print: ' . $e->getMessage());
         }
     }
     

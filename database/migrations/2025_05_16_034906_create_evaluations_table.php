@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('Evaluations', function (Blueprint $table) {
+       Schema::create('evaluations', function (Blueprint $table) {
     $table->id();
     $table->integer('training_percentage'); // 10, 20, ..., 100
     $table->integer('k_value')->nullable(); // nilai K yang digunakan
@@ -21,6 +21,8 @@ return new class extends Migration
     $table->float('precision')->nullable();
     $table->float('recall')->nullable();
     $table->float('f1_score')->nullable();
+    $table->integer('training_data_count')->nullable();
+    $table->integer('test_data_count')->nullable();
     $table->timestamps();
 });
 

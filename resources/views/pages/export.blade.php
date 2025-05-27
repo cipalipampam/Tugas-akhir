@@ -14,7 +14,7 @@
                         </div>
                         <div class="card-body p-3">
                             <div class="row">
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <div class="card border mb-3 format-card" data-format="pdf">
                                         <div class="card-body p-3 text-center">
                                             <div class="mb-3">
@@ -28,21 +28,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="card border mb-3 format-card" data-format="excel">
-                                        <div class="card-body p-3 text-center">
-                                            <div class="mb-3">
-                                                <i class="material-icons text-success" style="font-size: 2.5rem;">table_view</i>
-                                            </div>
-                                            <h6 class="mb-1">Excel</h6>
-                                            <div class="form-check d-flex justify-content-center mt-2">
-                                                <input class="form-check-input me-2" type="radio" name="fileFormat" id="formatExcel" value="excel">
-                                                <label class="form-check-label" for="formatExcel">Pilih Format</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <div class="card border mb-3 format-card" data-format="csv">
                                         <div class="card-body p-3 text-center">
                                             <div class="mb-3">
@@ -52,20 +38,6 @@
                                             <div class="form-check d-flex justify-content-center mt-2">
                                                 <input class="form-check-input me-2" type="radio" name="fileFormat" id="formatCSV" value="csv">
                                                 <label class="form-check-label" for="formatCSV">Pilih Format</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card border mb-3 format-card" data-format="print">
-                                        <div class="card-body p-3 text-center">
-                                            <div class="mb-3">
-                                                <i class="material-icons text-dark" style="font-size: 2.5rem;">print</i>
-                                            </div>
-                                            <h6 class="mb-1">Print</h6>
-                                            <div class="form-check d-flex justify-content-center mt-2">
-                                                <input class="form-check-input me-2" type="radio" name="fileFormat" id="formatPrint" value="print">
-                                                <label class="form-check-label" for="formatPrint">Pilih Format</label>
                                             </div>
                                         </div>
                                     </div>
