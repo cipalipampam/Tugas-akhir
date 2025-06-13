@@ -7,9 +7,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\InputDataController;
 use App\Http\Controllers\VisualisasiController;
-use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SessionsController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\KebijakanController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -19,10 +19,11 @@ use App\Http\Controllers\ExportController;
 Route::middleware('guest')->group(function () {
     Route::get('/', [SessionsController::class, 'create'])->name('login');
     Route::post('/login', [SessionsController::class, 'store'])->name('login.store');
-    Route::get('/register', [ProfileController::class, 'register'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
     Route::get('/reset', [ProfileController::class, 'reset'])->name('reset');
+    Route::post('/reset', [SessionsController::class, 'show'])->name('password.email');
     Route::get('/verify', [ProfileController::class, 'verify'])->name('verify');
+    Route::get('/reset-password/{token}', [ProfileController::class, 'reset'])->name('password.reset');
+    Route::post('/reset-password', [SessionsController::class, 'update'])->name('password.update');
 });
 
 // Protected routes (require authentication)
@@ -52,4 +53,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/static-sign-up', [ProfileController::class, 'staticSignUp'])->name('static-sign-up');
     Route::post('/logout', [SessionsController::class, 'destroy'])->name('logout');
     Route::get('/download-template', [InputDataController::class, 'downloadTemplate'])->name('download.template');
+
+    // Kebijakan routes
+    Route::middleware([\App\Http\Middleware\CheckRole::class.':superadministrator'])->group(function () {
+        Route::get('/kebijakan', [KebijakanController::class, 'index'])->name('kebijakan.index');
+        Route::get('/kebijakan/create', [KebijakanController::class, 'create'])->name('kebijakan.create');
+        Route::post('/kebijakan', [KebijakanController::class, 'store'])->name('kebijakan.store');
+        Route::delete('/kebijakan/{id}', [KebijakanController::class, 'destroy'])->name('kebijakan.destroy');
+    });
 });

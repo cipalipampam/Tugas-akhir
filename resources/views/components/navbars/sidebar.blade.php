@@ -44,7 +44,7 @@
                     <span class="nav-link-text ms-1">Prediksi</span>
                 </a>
             </li>
-               <li class="nav-item">
+            <li class="nav-item">
                 <a class="nav-link text-white {{ $activePage == 'performa' ? ' active bg-gradient-primary' : '' }}  "
                     href="{{ route('performa') }}">
                     <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
@@ -53,6 +53,17 @@
                     <span class="nav-link-text ms-1">Performa</span>
                 </a>
             </li>
+            @if(auth()->user()->role === 'superadministrator')
+            <li class="nav-item">
+                <a class="nav-link text-white {{ $activePage == 'kebijakan.index' ? ' active bg-gradient-primary' : '' }}  "
+                    href="{{ route('kebijakan.index') }}">
+                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="material-icons opacity-10">assessment</i>
+                    </div>
+                    <span class="nav-link-text ms-1">kebijakan</span>
+                </a>
+            </li>
+            @endif
             <li class="nav-item">
                 <a class="nav-link text-white {{ $activePage == 'visualisasi-data' ? ' active bg-gradient-primary' : '' }}  "
                     href="{{ route('visualisasi-data') }}">

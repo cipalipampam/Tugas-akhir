@@ -16,12 +16,6 @@ class ProfileController extends Controller
         return view('sessions.password.reset');
     }
 
-
-    public function register()
-    {
-        return view('register.create');
-    }
-
     public function create()
     {
         return view('pages.profile');
@@ -54,7 +48,6 @@ class ProfileController extends Controller
 
     public function update()
     {
-
         $user = request()->user();
         $attributes = request()->validate([
             'email' => 'required|email|unique:users,email,' . $user->id,
@@ -66,6 +59,5 @@ class ProfileController extends Controller
 
         auth()->user()->update($attributes);
         return back()->withStatus('Profile successfully updated.');
-
     }
 }
