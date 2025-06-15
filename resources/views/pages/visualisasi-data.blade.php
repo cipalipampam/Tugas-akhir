@@ -15,34 +15,50 @@
                         <div class="card-body p-3">
                             <form method="GET" action="{{ route('visualisasi-data') }}" id="filterForm">
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="status" class="form-label">Status Prediksi Kelulusan</label>
-                                        <select class="form-select" id="status" name="status">
-                                            <option value="all" {{ $statusFilter == 'all' ? 'selected' : '' }}>Semua</option>
-                                            <option value="lulus" {{ $statusFilter == 'lulus' ? 'selected' : '' }}>Lulus</option>
-                                            <option value="lulus bersyarat" {{ $statusFilter == 'lulus bersyarat' ? 'selected' : '' }}>Lulus Bersyarat</option>
-                                            <option value="tidak lulus" {{ $statusFilter == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
-                                        </select>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Filter Status</label>
+                                            <select name="status" class="form-select">
+                                                <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Status</option>
+                                                <option value="lulus" {{ $statusFilter === 'lulus' ? 'selected' : '' }}>Lulus</option>
+                                                <option value="lulus bersyarat" {{ $statusFilter === 'lulus bersyarat' ? 'selected' : '' }}>Lulus Bersyarat</option>
+                                                <option value="tidak lulus" {{ $statusFilter === 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label d-block">Semester</label>
-                                        <div class="d-flex flex-wrap">
-                                            @for ($i = 1; $i <= 6; $i++)
-                                                <div class="form-check me-3">
-                                                    <input 
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Filter Tahun Angkatan</label>
+                                            <select name="tahun_angkatan" class="form-select">
+                                                <option value="all" {{ $tahunAngkatanFilter === 'all' ? 'selected' : '' }}>Semua Tahun</option>
+                                                @foreach($availableTahunAngkatan as $tahun)
+                                                    <option value="{{ $tahun }}" {{ $tahunAngkatanFilter === $tahun ? 'selected' : '' }}>
+                                                        {{ $tahun }}
+                                                    </option>
+                                                @endforeach
+                                        </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Filter Semester</label>
+                                            <div class="row">
+                                                @for($i = 1; $i <= 6; $i++)
+                                                    <div class="col-4">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" 
                                                         class="form-check-input" 
-                                                        type="checkbox" 
+                                                                name="semester[]" 
                                                         value="{{ $i }}" 
                                                         id="semester{{ $i }}" 
-                                                        name="semester[]" 
-                                                        {{ in_array($i, $semesterFilter) ? 'checked' : '' }}
-                                                    >
+                                                                {{ in_array($i, $semesterFilter) ? 'checked' : '' }}>
                                                     <label class="form-check-label" for="semester{{ $i }}">
                                                         Semester {{ $i }}
                                                     </label>
+                                                        </div>
                                                 </div>
                                             @endfor
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

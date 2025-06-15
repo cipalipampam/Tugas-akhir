@@ -53,17 +53,6 @@
                     <span class="nav-link-text ms-1">Performa</span>
                 </a>
             </li>
-            @if(auth()->user()->role === 'superadministrator')
-            <li class="nav-item">
-                <a class="nav-link text-white {{ $activePage == 'kebijakan.index' ? ' active bg-gradient-primary' : '' }}  "
-                    href="{{ route('kebijakan.index') }}">
-                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="material-icons opacity-10">assessment</i>
-                    </div>
-                    <span class="nav-link-text ms-1">kebijakan</span>
-                </a>
-            </li>
-            @endif
             <li class="nav-item">
                 <a class="nav-link text-white {{ $activePage == 'visualisasi-data' ? ' active bg-gradient-primary' : '' }}  "
                     href="{{ route('visualisasi-data') }}">
@@ -94,6 +83,26 @@
                     <span class="nav-link-text ms-1">Profile</span>
                 </a>
             </li>
+             @if(auth()->user()->role === 'superadministrator')
+            <li class="nav-item">
+                <a class="nav-link text-white {{ $activePage == 'kebijakan.index' ? ' active bg-gradient-primary' : '' }}  "
+                    href="{{ route('kebijakan.index') }}">
+                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="material-icons opacity-10">policy</i>
+                    </div>
+                    <span class="nav-link-text ms-1">kebijakan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white {{ $activePage == 'user-management.index' ? ' active bg-gradient-primary' : '' }}  "
+                    href="{{ route('user-management.index') }}">
+                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="material-icons opacity-10">man</i>
+                    </div>
+                    <span class="nav-link-text ms-1">Manajemen User</span>
+                </a>
+            </li>
+            @endif
         </ul>
     </div>
 </aside>

@@ -123,12 +123,10 @@
             </div>
         </div>
     </main>
-
-    @push('scripts')
     <script>
         function deleteRule(id) {
             if (confirm('Apakah Anda yakin ingin menghapus aturan ini?')) {
-                fetch(`/admin/kebijakan/${id}`, {
+                fetch(`/kebijakan/${id}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -150,5 +148,4 @@
             }
         }
     </script>
-    @endpush
 </x-layout>

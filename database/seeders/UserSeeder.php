@@ -14,24 +14,24 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create superadministrator if not exists
-        if (!User::where('email', 'superadmin@example.com')->exists()) {
-            User::create([
-                'name' => 'Super Administrator',
-                'email' => 'agungalamsyah719@gmail.com',
-                'password' => Hash::make('password123'),
-                'role' => 'superadministrator',
-            ]);
-        }
+        User::factory()->create([
+            'name' => 'Super Administrator',
+            'email' => 'agungalamsyah719@gmail.com',
+            'password' => Hash::make('password123'),
+            'role' => 'superadministrator',
+        ]);
+        User::factory()->create([
+            'name' => 'Administrator',
+            'email' => 'Firman@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'admin',
+        ]);
+         User::factory()->create([
+            'name' => 'Administrator',
+            'email' => 'alamsyah@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'admin',
+        ]);
 
-        // Create admin if not exists
-        if (!User::where('email', 'admin@example.com')->exists()) {
-            User::create([
-                'name' => 'Administrator',
-                'email' => 'admin@example.com',
-                'password' => Hash::make('password123'),
-                'role' => 'admin',
-            ]);
-        }
     }
 }

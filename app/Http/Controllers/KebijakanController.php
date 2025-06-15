@@ -27,12 +27,21 @@ class KebijakanController extends Controller
 
     public function store(Request $request)
     {
+        $rules = $request->input('rules', []);
+        
+        if (empty($rules)) {
+            return redirect()->back()
+                ->with('error', 'Tidak ada aturan yang ditambahkan')
+                ->withInput();
+        }
+
         $validator = Validator::make($request->all(), [
-            'attribute' => 'required|string',
-            'operator' => 'required|in:<,<=,=,>=,>',
-            'value' => 'required|numeric',
-            'category' => 'required|in:lulus,lulus bersyarat,tidak lulus',
-            'priority' => 'required|integer|min:1',
+            'rules' => 'required|array',
+            'rules.*.attribute' => 'required|string',
+            'rules.*.operator' => 'required|in:<,<=,=,>=,>',
+            'rules.*.value' => 'required|numeric',
+            'rules.*.category' => 'required|in:lulus,lulus bersyarat,tidak lulus',
+            'rules.*.priority' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -41,31 +50,37 @@ class KebijakanController extends Controller
                 ->withInput();
         }
 
-        // Additional validation for value ranges
-        $value = floatval($request->value);
-        $attribute = $request->attribute;
-
-        if (in_array($attribute, ['sikap', 'kerajinan', 'kerapian'])) {
-            if ($value < 0 || $value > 1) {
-                return redirect()->back()
-                    ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 1'])
-                    ->withInput();
-            }
-        } elseif (in_array($attribute, ['rata_rata', 'usp'])) {
-            if ($value < 0 || $value > 100) {
-                return redirect()->back()
-                    ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 100'])
-                    ->withInput();
-            }
-        }
-
         try {
-            GraduationRule::create($request->only([
-                'attribute', 'operator', 'value', 'category', 'priority'
-            ]));
+            foreach ($rules as $rule) {
+                // Additional validation for value ranges
+                $value = floatval($rule['value']);
+                $attribute = $rule['attribute'];
+
+                if (in_array($attribute, ['sikap', 'kerajinan', 'kerapian'])) {
+                    if ($value < 0 || $value > 1) {
+                        return redirect()->back()
+                            ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 1'])
+                            ->withInput();
+                    }
+                } elseif (in_array($attribute, ['rata_rata', 'usp'])) {
+                    if ($value < 0 || $value > 100) {
+                        return redirect()->back()
+                            ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 100'])
+                            ->withInput();
+                    }
+                }
+
+                GraduationRule::create([
+                    'attribute' => $rule['attribute'],
+                    'operator' => $rule['operator'],
+                    'value' => $rule['value'],
+                    'category' => $rule['category'],
+                    'priority' => $rule['priority']
+                ]);
+            }
 
             return redirect()->route('kebijakan.index')
-                ->with('success', 'Aturan berhasil ditambahkan');
+                ->with('success', 'Semua aturan berhasil ditambahkan');
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan saat menambahkan aturan: ' . $e->getMessage())

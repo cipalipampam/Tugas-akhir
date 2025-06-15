@@ -94,6 +94,7 @@ public function index()
                 $name = trim($row['nama'] ?? '');
                 $nisn = trim($row['nisn'] ?? '');
                 $trueStatus = trim($row['status'] ?? '');
+                $tahunAngkatan = trim($row['tahun angkatan'] ?? '');
 
                 // Tentukan jenis data secara otomatis
                 $jenisData = $trueStatus !== '' ? 'training' : 'testing';
@@ -114,6 +115,7 @@ public function index()
                     'name' => $name,
                     'true_status' => $trueStatus !== '' ? $trueStatus : null,
                     'jenis_data' => $jenisData,
+                    'tahun_angkatan' => $tahunAngkatan,
                 ]);
 
                 // Simpan atribut nilai

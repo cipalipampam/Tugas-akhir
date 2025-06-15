@@ -31,12 +31,16 @@ class PerformaController extends Controller
 
         try {
             $students = Student::whereNotNull('true_status')->get();
-            $students = $students->shuffle();
+           
+            srand($request->training_percentage); // Seed disesuaikan dari input persen training (biar tetap konsisten tapi beda seed tiap setting)
+            $students = $students->all();
+            shuffle($students);
+            $students = collect($students);
+
             $splitIndex = (int) (count($students) * ($request->training_percentage / 100));
             $trainingData = $students->slice(0, $splitIndex);
             $testingData = $students->slice($splitIndex);
 
-            // Inisialisasi confusion matrix
             $classes = ['lulus', 'lulus_bersyarat', 'tidak_lulus'];
             $confusionMatrix = [];
             foreach ($classes as $actual) {
@@ -47,11 +51,12 @@ class PerformaController extends Controller
 
             $total = 0;
             $correctPredictions = 0;
+            $observedClasses = []; // untuk menyimpan kelas yang muncul di data uji
 
             foreach ($testingData as $testStudent) {
-                $neighbors = $this->getKNearestNeighbors($testStudent, $trainingData, 5); // K = 5
+                $neighbors = $this->getKNearestNeighbors($testStudent, $trainingData, 5);
                 $predictedStatus = $this->predictStatus($neighbors);
-                
+
                 $trueStatusKey = strtolower(trim($testStudent->true_status));
                 if (!array_key_exists($trueStatusKey, self::STATUS_MAP)) {
                     Log::warning("Unknown true status '{$testStudent->true_status}' for student ID {$testStudent->id}");
@@ -66,6 +71,7 @@ class PerformaController extends Controller
                 }
 
                 $confusionMatrix[$actualStatus][$predictedStatus]++;
+                $observedClasses[$actualStatus] = true;
                 $total++;
 
                 if ($predictedStatus === $actualStatus) {
@@ -73,28 +79,19 @@ class PerformaController extends Controller
                 }
             }
 
-            // Akurasi keseluruhan
             $accuracy = ($total > 0) ? ($correctPredictions / $total) * 100 : 0;
 
-            // Hitung metrik per kelas
             $classMetrics = [];
+            $activeClasses = array_keys($observedClasses); // hanya kelas yang muncul
 
-            foreach ($classes as $class) {
-                $truePositives = $confusionMatrix[$class][$class];
-                $falsePositives = array_sum(array_column($confusionMatrix, $class)) - $truePositives;
-                $falseNegatives = array_sum($confusionMatrix[$class]) - $truePositives;
+            foreach ($activeClasses as $class) {
+                $tp = $confusionMatrix[$class][$class];
+                $fp = array_sum(array_column($confusionMatrix, $class)) - $tp;
+                $fn = array_sum($confusionMatrix[$class]) - $tp;
 
-                $precision = ($truePositives + $falsePositives) > 0 
-                    ? ($truePositives / ($truePositives + $falsePositives)) * 100 
-                    : 0;
-
-                $recall = ($truePositives + $falseNegatives) > 0 
-                    ? ($truePositives / ($truePositives + $falseNegatives)) * 100 
-                    : 0;
-
-                $f1Score = ($precision + $recall) > 0 
-                    ? 2 * ($precision * $recall) / ($precision + $recall) 
-                    : 0;
+                $precision = ($tp + $fp) > 0 ? ($tp / ($tp + $fp)) * 100 : 0;
+                $recall = ($tp + $fn) > 0 ? ($tp / ($tp + $fn)) * 100 : 0;
+                $f1Score = ($precision + $recall) > 0 ? (2 * $precision * $recall) / ($precision + $recall) : 0;
 
                 $classMetrics[$class] = [
                     'precision' => $precision,
@@ -103,10 +100,10 @@ class PerformaController extends Controller
                 ];
             }
 
-            // Macro Average
-            $macroPrecision = array_sum(array_column($classMetrics, 'precision')) / count($classes);
-            $macroRecall = array_sum(array_column($classMetrics, 'recall')) / count($classes);
-            $macroF1 = array_sum(array_column($classMetrics, 'f1_score')) / count($classes);
+            // Macro average hanya dari kelas aktif
+            $macroPrecision = array_sum(array_column($classMetrics, 'precision')) / count($activeClasses);
+            $macroRecall = array_sum(array_column($classMetrics, 'recall')) / count($activeClasses);
+            $macroF1 = array_sum(array_column($classMetrics, 'f1_score')) / count($activeClasses);
 
             Evaluations::create([
                 'training_percentage' => $request->training_percentage,
@@ -127,6 +124,7 @@ class PerformaController extends Controller
             return redirect()->route('performa')->with('error', 'Terjadi kesalahan saat melakukan evaluasi');
         }
     }
+
 
     private function getKNearestNeighbors($testStudent, $trainingData, $k)
     {
@@ -181,3 +179,4 @@ class PerformaController extends Controller
         return array_search(max($classWeights), $classWeights);
     }
 }
+

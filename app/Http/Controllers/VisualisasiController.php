@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\StudentValue;
 use App\Models\Prediction;
 use Illuminate\Support\Facades\DB;
+use App\Models\Student;
 
 class VisualisasiController extends Controller
 {
@@ -14,22 +15,31 @@ class VisualisasiController extends Controller
         // Get filter parameters
         $statusFilter = $request->input('status', 'all');
         $semesterFilter = $request->input('semester', [1, 2, 3, 4, 5, 6]);
+        $tahunAngkatanFilter = $request->input('tahun_angkatan', 'all');
         
         if (!is_array($semesterFilter)) {
             $semesterFilter = [$semesterFilter];
         }
         
+        // Get available tahun angkatan for filter dropdown
+        $availableTahunAngkatan = Student::select('tahun_angkatan')
+            ->whereNotNull('tahun_angkatan')
+            ->distinct()
+            ->pluck('tahun_angkatan')
+            ->sort()
+            ->values();
+        
         // Prediction distribution data
-        $statusCounts = $this->getPredictionDistribution($statusFilter);
+        $statusCounts = $this->getPredictionDistribution($statusFilter, $tahunAngkatanFilter);
         
         // Academic vs Non-Academic data
-        $acadVsNonAcadData = $this->getAcademicVsNonAcademicData($statusFilter);
+        $acadVsNonAcadData = $this->getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter);
         
         // Semester trend data
-        $semesterTrendData = $this->getSemesterTrendData($statusFilter, $semesterFilter);
+        $semesterTrendData = $this->getSemesterTrendData($statusFilter, $semesterFilter, $tahunAngkatanFilter);
         
         // Correlation heatmap data
-        $correlationData = $this->getCorrelationData($statusFilter);
+        $correlationData = $this->getCorrelationData($statusFilter, $tahunAngkatanFilter);
         
         return view('pages.visualisasi-data', compact(
             'statusCounts',
@@ -37,17 +47,24 @@ class VisualisasiController extends Controller
             'semesterTrendData',
             'correlationData',
             'statusFilter',
-            'semesterFilter'
+            'semesterFilter',
+            'tahunAngkatanFilter',
+            'availableTahunAngkatan'
         ));
     }
     
-    private function getPredictionDistribution($statusFilter)
+    private function getPredictionDistribution($statusFilter, $tahunAngkatanFilter)
     {
         $query = Prediction::select('predicted_status', DB::raw('count(*) as total'))
+            ->join('student', 'predictions.test_student_id', '=', 'student.id')
             ->whereNotNull('predicted_status');
             
         if ($statusFilter !== 'all') {
             $query->where('predicted_status', $statusFilter);
+        }
+        
+        if ($tahunAngkatanFilter !== 'all') {
+            $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
         }
             
         $results = $query->groupBy('predicted_status')
@@ -61,57 +78,48 @@ class VisualisasiController extends Controller
         ];
     }
     
-    private function getAcademicVsNonAcademicData($statusFilter)
+    private function getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter)
     {
-        // Get student IDs based on filter
-        $studentIds = $this->getFilteredStudentIds($statusFilter);
-        
-        // Academic data (Semester averages and USP)
-        $academicKeys = ['Rata-Rata Semester 1', 'Rata-Rata Semester 2', 'Rata-Rata Semester 3', 
-                         'Rata-Rata Semester 4', 'Rata-Rata Semester 5', 'Rata-Rata Semester 6', 'usp'];
-                         
-        $academicAvgs = [];
-        
-        foreach ($academicKeys as $key) {
-            $query = StudentValue::where('key', $key)
-                ->where('value', '!=', '');
-                
-            if (!empty($studentIds)) {
-                $query->whereIn('student_id', $studentIds);
-            }
-                
-            $academicAvgs[$key] = $query->avg(DB::raw('CAST(value AS DECIMAL(10,2))')) ?? 0;
+        $query = StudentValue::select('key', DB::raw('AVG(CAST(value AS DECIMAL(10,2))) as average'))
+            ->join('student', 'student_values.student_id', '=', 'student.id')
+            ->where('value', '!=', '');
+            
+        if ($tahunAngkatanFilter !== 'all') {
+            $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
         }
         
-        // Non-academic data (Sikap, Kerapian, Kerajinan)
-        $nonAcademicKeys = ['sikap', 'kerapian', 'kerajinan'];
-        $nonAcademicAvgs = [];
-        
-        foreach ($nonAcademicKeys as $key) {
-            $query = StudentValue::where('key', $key);
-            
-            if (!empty($studentIds)) {
-                $query->whereIn('student_id', $studentIds);
-            }
-            
-            $values = $query->get()->map(function($item) {
-                return $this->convertAttitudeToNumeric($item->value);
-            });
-            
-            $nonAcademicAvgs[$key] = $values->avg() ?? 0;
+        if ($statusFilter !== 'all') {
+            $query->join('predictions', 'student.id', '=', 'predictions.test_student_id')
+                ->where('predictions.predicted_status', $statusFilter);
         }
         
+        $results = $query->groupBy('key')
+            ->pluck('average', 'key')
+            ->toArray();
+            
         return [
-            'academic' => $academicAvgs,
-            'non_academic' => $nonAcademicAvgs
+            'academic' => [
+                'Rata-Rata Semester 1' => $results['semester_1'] ?? 0,
+                'Rata-Rata Semester 2' => $results['semester_2'] ?? 0,
+                'Rata-Rata Semester 3' => $results['semester_3'] ?? 0,
+                'Rata-Rata Semester 4' => $results['semester_4'] ?? 0,
+                'Rata-Rata Semester 5' => $results['semester_5'] ?? 0,
+                'Rata-Rata Semester 6' => $results['semester_6'] ?? 0,
+                'USP' => $results['usp'] ?? 0
+            ],
+            'non_academic' => [
+                'sikap' => $results['sikap'] ?? 0,
+                'kerajinan' => $results['kerajinan'] ?? 0,
+                'kerapian' => $results['kerapian'] ?? 0
+            ]
         ];
     }
-
-    private function getSemesterTrendData($statusFilter, $semesterFilter)
+    
+    private function getSemesterTrendData($statusFilter, $semesterFilter, $tahunAngkatanFilter)
     {
         $semesterKeys = [];
         foreach ($semesterFilter as $semester) {
-            $semesterKeys[] = "Rata-Rata Semester $semester";
+            $semesterKeys[] = "semester_$semester";
         }
         
         if (empty($semesterKeys)) {
@@ -126,7 +134,7 @@ class VisualisasiController extends Controller
                 continue;
             }
             
-            $studentIds = $this->getStudentIdsByStatus($status);
+            $studentIds = $this->getStudentIdsByStatus($status, $tahunAngkatanFilter);
             
             $averages = [];
             foreach ($semesterKeys as $key) {
@@ -150,90 +158,60 @@ class VisualisasiController extends Controller
             'datasets' => $trendData
         ];
     }
- 
-    private function getCorrelationData($statusFilter)
+    
+    private function getCorrelationData($statusFilter, $tahunAngkatanFilter)
     {
-        $studentIds = $this->getFilteredStudentIds($statusFilter);
+        $query = StudentValue::select('key', 'value')
+            ->join('student', 'student_values.student_id', '=', 'student.id')
+            ->where('value', '!=', '');
+            
+        if ($tahunAngkatanFilter !== 'all') {
+            $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
+        }
         
-        $attributes = [
-            'Rata-Rata Semester 1', 'Rata-Rata Semester 2', 'Rata-Rata Semester 3',
-            'Rata-Rata Semester 4', 'Rata-Rata Semester 5', 'Rata-Rata Semester 6',
-            'usp', 'sikap', 'kerapian', 'kerajinan'
-        ];
+        if ($statusFilter !== 'all') {
+            $query->join('predictions', 'student.id', '=', 'predictions.test_student_id')
+                ->where('predictions.predicted_status', $statusFilter);
+        }
         
-        $displayNames = [
-            'Rata-Rata Semester 1' => 'Sem 1', 
-            'Rata-Rata Semester 2' => 'Sem 2', 
-            'Rata-Rata Semester 3' => 'Sem 3',
-            'Rata-Rata Semester 4' => 'Sem 4', 
-            'Rata-Rata Semester 5' => 'Sem 5', 
-            'Rata-Rata Semester 6' => 'Sem 6',
-            'usp' => 'USP', 
-            'sikap' => 'Sikap', 
-            'kerapian' => 'Kerapian', 
-            'kerajinan' => 'Kerajinan'
-        ];
-        
+        $data = $query->get()
+            ->groupBy('key')
+            ->map(function($values) {
+                return $values->pluck('value')->map(function($value) {
+                    return floatval($value);
+                })->toArray();
+            });
+            
+        $labels = array_keys($data->toArray());
         $correlationMatrix = [];
         
-        // Initialize matrix with zeros
-        foreach ($attributes as $attr1) {
-            foreach ($attributes as $attr2) {
-                $correlationMatrix[$displayNames[$attr1]][$displayNames[$attr2]] = 0;
-            }
-        }
-        
-        // Get all students' data
-        $studentValues = StudentValue::whereIn('key', $attributes);
-        
-        if (!empty($studentIds)) {
-            $studentValues->whereIn('student_id', $studentIds);
-        }
-        
-        $studentValues = $studentValues->get()->groupBy('student_id');
-        
-        // Process student data for correlation calculation
-        $attributeValues = [];
-        foreach ($attributes as $attr) {
-            $attributeValues[$attr] = [];
-        }
-        
-        foreach ($studentValues as $studentId => $values) {
-            $studentData = [];
-            
-            foreach ($values as $value) {
-                if ($value->key === 'sikap' || $value->key === 'kerapian' || $value->key === 'kerajinan') {
-                    $studentData[$value->key] = $this->convertAttitudeToNumeric($value->value);
-                } else {
-                    $studentData[$value->key] = floatval($value->value);
-                }
-            }
-            
-            foreach ($attributes as $attr) {
-                if (isset($studentData[$attr])) {
-                    $attributeValues[$attr][] = $studentData[$attr];
-                }
-            }
-        }
-        
-        // Calculate correlation
-        foreach ($attributes as $attr1) {
-            foreach ($attributes as $attr2) {
-                if (count($attributeValues[$attr1]) > 0 && count($attributeValues[$attr2]) > 0) {
-                    $correlation = $this->calculateCorrelation(
-                        $attributeValues[$attr1], 
-                        $attributeValues[$attr2]
-                    );
-                    
-                    $correlationMatrix[$displayNames[$attr1]][$displayNames[$attr2]] = round($correlation, 2);
-                }
+        foreach ($labels as $label1) {
+            $correlationMatrix[$label1] = [];
+            foreach ($labels as $label2) {
+                $correlationMatrix[$label1][$label2] = $this->calculateCorrelation(
+                    $data[$label1] ?? [],
+                    $data[$label2] ?? []
+                );
             }
         }
         
         return [
-            'labels' => array_values(array_intersect_key($displayNames, array_flip($attributes))),
+            'labels' => $labels,
             'data' => $correlationMatrix
         ];
+    }
+    
+    private function getStudentIdsByStatus($status, $tahunAngkatanFilter)
+    {
+        $query = Prediction::select('test_student_id')
+            ->join('student', 'predictions.test_student_id', '=', 'student.id')
+            ->where('predicted_status', $status);
+            
+        if ($tahunAngkatanFilter !== 'all') {
+            $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
+        }
+        
+        return $query->pluck('test_student_id')->toArray();
     }
  
     private function calculateCorrelation($x, $y)
@@ -268,36 +246,5 @@ class VisualisasiController extends Controller
         $denominator = sqrt($denominatorX * $denominatorY);
         
         return $denominator == 0 ? 0 : $numerator / $denominator;
-    }
- 
-    private function getFilteredStudentIds($statusFilter)
-    {
-        if ($statusFilter === 'all') {
-            return [];
-        }
-        
-        return Prediction::where('predicted_status', $statusFilter)
-            ->pluck('test_student_id')
-            ->toArray();
-    }
-  
-    private function getStudentIdsByStatus($status)
-    {
-        return Prediction::where('predicted_status', $status)
-            ->pluck('test_student_id')
-            ->toArray();
-    }
-  
-    private function convertAttitudeToNumeric($value)
-    {
-        $value = strtolower(trim($value));
-        $map = [
-            'baik' => 3,
-            'cukup baik' => 2,
-            'kurang baik' => 1,
-            '' => 0
-        ];
-        
-        return $map[$value] ?? 0;
     }
 }

@@ -7,7 +7,7 @@ class Student extends Model
 {
     protected $table = 'student';
 
-    protected $fillable = ['nisn', 'name', 'jenis_data', 'true_status'];
+    protected $fillable = ['nisn', 'name', 'tahun_angkatan', 'jenis_data', 'true_status'];
 
     public function studentValues()
     {

@@ -14,6 +14,7 @@ class CreateStudentsTable extends Migration
             $table->id();
             $table->string('nisn', 20)->unique();
             $table->string('name');
+            $table->string('tahun_angkatan', 4)->nullable();
             $table->enum('jenis_data', ['training', 'testing'])->default('testing');
             $table->string('true_status')->nullable();
             $table->timestamps();

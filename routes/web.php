@@ -10,6 +10,7 @@ use App\Http\Controllers\VisualisasiController;
 use App\Http\Controllers\SessionsController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\KebijakanController;
+use App\Http\Controllers\UserManagementController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -60,5 +61,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/kebijakan/create', [KebijakanController::class, 'create'])->name('kebijakan.create');
         Route::post('/kebijakan', [KebijakanController::class, 'store'])->name('kebijakan.store');
         Route::delete('/kebijakan/{id}', [KebijakanController::class, 'destroy'])->name('kebijakan.destroy');
+    });
+
+    // User management routes
+    Route::middleware(['auth', \App\Http\Middleware\CheckRole::class.':superadministrator'])->group(function () {
+        Route::get('/user-management', [UserManagementController::class, 'index'])->name('user-management.index');
+        Route::get('/user-management/create', [UserManagementController::class, 'create'])->name('user-management.create');
+        Route::post('/user-management', [UserManagementController::class, 'store'])->name('user-management.store');
+        Route::get('/user-management/{user}/edit', [UserManagementController::class, 'edit'])->name('user-management.edit');
+        Route::put('/user-management/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
+        Route::delete('/user-management/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
     });
 });
