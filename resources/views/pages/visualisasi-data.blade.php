@@ -231,6 +231,8 @@
             const academicData = @json($acadVsNonAcadData);
             const academicLabels = [];
             const academicValues = [];
+            const nonAcademicLabels = [];
+            const nonAcademicValues = [];
             
             // Process academic data
             for (const [key, value] of Object.entries(academicData.academic)) {
@@ -246,19 +248,20 @@
             
             // Process non-academic data
             for (const [key, value] of Object.entries(academicData.non_academic)) {
-                academicLabels.push(key.charAt(0).toUpperCase() + key.slice(1));
-                academicValues.push(parseFloat(value));
+                nonAcademicLabels.push(key.charAt(0).toUpperCase() + key.slice(1));
+                nonAcademicValues.push(parseFloat(value));
             }
             
             const barCtx = document.getElementById('academic-bar-chart').getContext('2d');
             new Chart(barCtx, {
                 type: 'bar',
                 data: {
-                    labels: academicLabels,
+                    labels: [...academicLabels, ...nonAcademicLabels],
                     datasets: [{
                         label: 'Nilai Rata-rata',
-                        data: academicValues,
+                        data: [...academicValues, ...nonAcademicValues],
                         backgroundColor: [
+                            // Warna untuk nilai akademik
                             'rgba(54, 162, 235, 0.7)',
                             'rgba(54, 162, 235, 0.6)',
                             'rgba(54, 162, 235, 0.5)',
@@ -266,9 +269,10 @@
                             'rgba(54, 162, 235, 0.3)',
                             'rgba(54, 162, 235, 0.2)',
                             'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)',
+                            // Warna untuk nilai non-akademik
+                            'rgba(255, 99, 132, 0.7)',
                             'rgba(255, 159, 64, 0.7)',
-                            'rgba(255, 99, 132, 0.7)'
+                            'rgba(153, 102, 255, 0.7)'
                         ],
                         borderColor: 'rgba(54, 162, 235, 1)',
                         borderWidth: 1
@@ -280,6 +284,7 @@
                     scales: {
                         y: {
                             beginAtZero: true,
+                            max: 3,
                             title: {
                                 display: true,
                                 text: 'Nilai Rata-rata'
@@ -299,10 +304,24 @@
                         tooltip: {
                             callbacks: {
                                 title: function(context) {
-                                    return context[0].label;
+                                    const label = context[0].label;
+                                    const isNonAcademic = nonAcademicLabels.includes(label);
+                                    return `${label} (${isNonAcademic ? 'Non-Akademik' : 'Akademik'})`;
                                 },
                                 label: function(context) {
-                                    return `Nilai: ${context.formattedValue}`;
+                                    const value = context.formattedValue;
+                                    const label = context[0].label;
+                                    const isNonAcademic = nonAcademicLabels.includes(label);
+                                    
+                                    if (isNonAcademic) {
+                                        const numericValue = parseFloat(value);
+                                        let textValue = '';
+                                        if (numericValue >= 2.5) textValue = 'Baik';
+                                        else if (numericValue >= 1.5) textValue = 'Cukup Baik';
+                                        else textValue = 'Kurang Baik';
+                                        return [`Nilai: ${value}`, `Kategori: ${textValue}`];
+                                    }
+                                    return `Nilai: ${value}`;
                                 }
                             }
                         }
@@ -354,7 +373,7 @@
             new Chart(lineCtx, {
                 type: 'line',
                 data: {
-                    labels: semesterData.labels,
+                    labels: ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'],
                     datasets: lineDatasets
                 },
                 options: {
@@ -362,16 +381,37 @@
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: false,
+                            beginAtZero: true,
+                            max: 100,
+                            min: 0,
                             title: {
                                 display: true,
                                 text: 'Nilai Rata-rata'
+                            },
+                            ticks: {
+                                stepSize: 10
                             }
                         },
                         x: {
                             title: {
                                 display: true,
                                 text: 'Semester'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.formattedValue}`;
+                                }
                             }
                         }
                     }

@@ -136,18 +136,29 @@
 
                                 <!-- Report Settings -->
                                 <div class="row mt-2">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <div class="form-group mb-3">
                                             <label for="judul" class="form-label">Judul Laporan</label>
                                             <input type="text" id="judul" class="form-control" placeholder="Masukkan judul laporan">
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <!-- <div class="col-md-4">
                                         <div class="form-group mb-3">
                                             <label for="tahunAjaran" class="form-label">Tahun Ajaran</label>
                                             <select class="form-control" id="tahunAjaran">
                                                 <option value="2022-2023">2022-2023</option>
                                                 <option value="2023-2024" selected>2023-2024</option>
+                                            </select>
+                                        </div>
+                                    </div> -->
+                                    <div class="col-md-4">
+                                        <div class="form-group mb-3">
+                                            <label for="tahunAngkatan" class="form-label">Tahun Angkatan</label>
+                                            <select class="form-control" id="tahunAngkatan" name="tahunAngkatan">
+                                                <option value="">Semua Tahun</option>
+                                                @foreach($tahunAngkatan as $tahun)
+                                                    <option value="{{ $tahun }}">{{ $tahun }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                     </div>
@@ -219,7 +230,8 @@
                 
                 // Get title and school year
                 formData.append('title', document.getElementById('judul').value);
-                formData.append('schoolYear', document.getElementById('tahunAjaran').value);
+                formData.append('tahunAngkatan', document.getElementById('tahunAngkatan').value);
+                formData.append('tahunAngkatan', document.getElementById('tahunAngkatan').value || '');
                 
                 // Show loading state
                 const button = this;

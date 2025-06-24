@@ -7,7 +7,7 @@
             <div class="card">
                 <div class="card-header text-center">
                     <h4>{{ $title }}</h4>
-                    <p>Tahun Ajaran: {{ $schoolYear }}</p>
+                    <p>Tahun Angkatan: {{ $tahunAngkatan }}</p>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">

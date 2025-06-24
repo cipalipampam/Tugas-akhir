@@ -52,23 +52,23 @@ class KebijakanController extends Controller
 
         try {
             foreach ($rules as $rule) {
-                // Additional validation for value ranges
+        // Additional validation for value ranges
                 $value = floatval($rule['value']);
                 $attribute = $rule['attribute'];
 
-                if (in_array($attribute, ['sikap', 'kerajinan', 'kerapian'])) {
-                    if ($value < 0 || $value > 1) {
-                        return redirect()->back()
-                            ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 1'])
-                            ->withInput();
-                    }
-                } elseif (in_array($attribute, ['rata_rata', 'usp'])) {
-                    if ($value < 0 || $value > 100) {
-                        return redirect()->back()
-                            ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 100'])
-                            ->withInput();
-                    }
-                }
+        if (in_array($attribute, ['sikap', 'kerajinan', 'kerapian'])) {
+            if ($value < 0 || $value > 1) {
+                return redirect()->back()
+                    ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 1'])
+                    ->withInput();
+            }
+        } elseif (in_array($attribute, ['rata_rata', 'usp'])) {
+            if ($value < 0 || $value > 100) {
+                return redirect()->back()
+                    ->withErrors(['value' => 'Nilai untuk ' . $attribute . ' harus antara 0 dan 100'])
+                    ->withInput();
+            }
+        }
 
                 GraduationRule::create([
                     'attribute' => $rule['attribute'],

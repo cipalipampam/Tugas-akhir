@@ -11,9 +11,12 @@ class ProfileController extends Controller
         return view('sessions.password.verify');
     }
 
-    public function reset()
+    public function reset(Request $request, $token)
     {
-        return view('sessions.password.reset');
+        return view('sessions.password.reset', [
+            'token' => $token,
+            'email' => $request->email,
+        ]);
     }
 
     public function create()

@@ -21,7 +21,13 @@ class ExportController extends Controller
     {
         try {
             $exportHistory = $this->getExportHistory();
-            return view('pages.export', compact('exportHistory'));
+            // Get unique years from students table
+            $tahunAngkatan = Student::select('tahun_angkatan')
+                ->distinct()
+                ->orderBy('tahun_angkatan', 'desc')
+                ->pluck('tahun_angkatan');
+            
+            return view('pages.export', compact('exportHistory', 'tahunAngkatan'));
         } catch (Exception $e) {
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
@@ -35,11 +41,12 @@ class ExportController extends Controller
                 'fileFormat' => 'required|in:pdf,csv',
                 'dataType' => 'required|in:all,passed,failed,prediction',
                 'title' => 'nullable|string|max:255',
-                'schoolYear' => 'nullable|string|max:20',
+                // 'schoolYear' => 'nullable|string|max:20',
+                'tahunAngkatan' => 'nullable|string|max:4',
             ]);
             
             // Get data based on the type
-            $data = $this->getDataByType($request->dataType);
+            $data = $this->getDataByType($request->dataType, $request->tahunAngkatan);
             
             if ($data->isEmpty()) {
                 return back()->with('error', 'Tidak ada data yang dapat diekspor');
@@ -55,9 +62,9 @@ class ExportController extends Controller
             // Export based on format
             switch ($request->fileFormat) {
                 case 'pdf':
-                    return $this->exportPdf($data, $includedColumns, $request->title, $request->schoolYear);
+                    return $this->exportPdf($data, $includedColumns, $request->title, $request->tahunAngkatan);
                 case 'csv':
-                    return $this->exportCsv($data, $includedColumns, $request->title, $request->schoolYear);
+                    return $this->exportCsv($data, $includedColumns, $request->title, $request->tahunAngkatan);
                 default:
                     return back()->with('error', 'Format tidak valid');
             }
@@ -66,30 +73,37 @@ class ExportController extends Controller
         }
     }
     
-    private function getDataByType($type)
+    private function getDataByType($type, $tahunAngkatan = null)
     {
         try {
+            $query = Student::with('studentValues');
+            
+            // Apply year filter if specified
+            if (!empty($tahunAngkatan)) {
+                $query->where('tahun_angkatan', $tahunAngkatan);
+            }
+            
             switch ($type) {
                 case 'all':
-                    return Student::with('studentValues')->get();
+                    return $query->get();
                 case 'passed':
-                    return Student::with('studentValues')
-                        ->where('true_status', 'lulus')
-                        ->orWhereHas('predictions', function ($query) {
-                            $query->where('predicted_status', 'lulus');
-                        })
-                        ->get();
+                    return $query->where(function($q) {
+                        $q->where('true_status', 'lulus')
+                          ->orWhereHas('predictions', function ($query) {
+                              $query->where('predicted_status', 'lulus');
+                          });
+                    })->get();
                 case 'failed':
-                    return Student::with('studentValues')
-                        ->where('true_status', 'tidak lulus')
-                        ->orWhereHas('predictions', function ($query) {
-                            $query->where('predicted_status', 'tidak lulus');
-                        })
-                        ->get();
+                    return $query->where(function($q) {
+                        $q->where('true_status', 'tidak lulus')
+                          ->orWhereHas('predictions', function ($query) {
+                              $query->where('predicted_status', 'tidak lulus');
+                          });
+                    })->get();
                 case 'prediction':
-                    return Student::with(['studentValues', 'predictions' => function ($query) {
-                        $query->latest();
-                    }])
+                    return $query->with(['predictions' => function ($query) {
+                            $query->latest();
+                        }])
                         ->whereHas('predictions')
                         ->get()
                         ->map(function ($student) {
@@ -143,7 +157,7 @@ class ExportController extends Controller
         return $columns;
     }
     
-    private function exportPdf($data, $columns, $title, $schoolYear)
+    private function exportPdf($data, $columns, $title, $tahunAngkatan)
     {
         try {
             $formattedData = $this->formatDataForExport($data, $columns);
@@ -152,8 +166,11 @@ class ExportController extends Controller
                 'data' => $formattedData,
                 'columns' => $columns,
                 'title' => $title ?: 'Laporan Data Siswa',
-                'schoolYear' => $schoolYear ?: date('Y')
+                'tahunAngkatan' => $tahunAngkatan ?: date('Y')
             ]);
+            
+            // Set PDF to landscape orientation
+            $pdf->setPaper('a4', 'landscape');
             
             $this->saveExportHistory('pdf', $title);
             

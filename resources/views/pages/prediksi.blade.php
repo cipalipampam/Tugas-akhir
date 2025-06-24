@@ -334,6 +334,43 @@
                                                 </div>
                                             </div>
                                         @endif
+                                        <!-- Hasil Prediksi Card (NISN, Nama, Predicted Status) -->
+                                        @if(isset($predictedStatus) && $testStudent)
+                                            <div class="card border mb-4 shadow-sm">
+                                                <div class="card-header bg-light">
+                                                    <h6 class="mb-0"><i class="fas fa-user-check me-2"></i>Hasil Prediksi Siswa</h6>
+                                                </div>
+                                                <div class="card-body p-4">
+                                                    <div class="row text-center justify-content-center align-items-center g-3">
+                                                        <div class="col-md-4 col-12">
+                                                            <div class="p-3 border rounded bg-white h-100 d-flex flex-column align-items-center">
+                                                                <div class="mb-2 text-primary" style="font-size: 2rem;"><i class="fas fa-id-card"></i></div>
+                                                                <div class="fw-bold text-secondary">NISN</div>
+                                                                <div class="fs-5">{{ $testStudent->nisn }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4 col-12">
+                                                            <div class="p-3 border rounded bg-white h-100 d-flex flex-column align-items-center">
+                                                                <div class="mb-2 text-success" style="font-size: 2rem;"><i class="fas fa-user"></i></div>
+                                                                <div class="fw-bold text-secondary">Nama</div>
+                                                                <div class="fs-5">{{ $testStudent->name }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4 col-12">
+                                                            <div class="p-3 border rounded bg-white h-100 d-flex flex-column align-items-center">
+                                                                <div class="mb-2 text-warning" style="font-size: 2rem;"><i class="fas fa-graduation-cap"></i></div>
+                                                                <div class="fw-bold text-secondary">Predicted Status</div>
+                                                                <div>
+                                                                    <span class="badge bg-{{ $predictedStatus == 'lulus' ? 'success' : ($predictedStatus == 'lulus bersyarat' ? 'warning' : 'danger') }} px-4 py-2 fs-6 shadow">
+                                                                        {{ ucwords($predictedStatus) }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
                                         <!-- Nearest Neighbors Table -->
                                         <div class="card border">
                                             <div class="card-header bg-light">

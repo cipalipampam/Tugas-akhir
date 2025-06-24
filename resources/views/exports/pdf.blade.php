@@ -4,8 +4,13 @@
     <meta charset="utf-8">
     <title>{{ $title }}</title>
     <style>
+        @page {
+            size: landscape;
+            margin: 1cm;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 12pt;
             margin: 20px;
         }
         .header {
@@ -13,17 +18,18 @@
             margin-bottom: 20px;
         }
         .header h1 {
-            font-size: 18px;
+            font-size: 14pt;
             margin: 0;
         }
         .header p {
-            font-size: 14px;
+            font-size: 12pt;
             margin: 5px 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            font-size: 12pt;
         }
         th, td {
             border: 1px solid #000;
@@ -32,18 +38,19 @@
         }
         th {
             background-color: #f2f2f2;
+            font-weight: bold;
         }
         .footer {
             text-align: center;
             margin-top: 30px;
-            font-size: 12px;
+            font-size: 12pt;
         }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>{{ $title }}</h1>
-        <p>Tahun Ajaran: {{ $schoolYear }}</p>
+        <p>Tahun Angkatan: {{ $tahunAngkatan }}</p>
     </div>
 
     <table>

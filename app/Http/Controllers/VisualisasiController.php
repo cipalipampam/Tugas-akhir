@@ -57,7 +57,8 @@ class VisualisasiController extends Controller
     {
         $query = Prediction::select('predicted_status', DB::raw('count(*) as total'))
             ->join('student', 'predictions.test_student_id', '=', 'student.id')
-            ->whereNotNull('predicted_status');
+            ->whereNotNull('predicted_status')
+            ->where('student.jenis_data', 'testing');
             
         if ($statusFilter !== 'all') {
             $query->where('predicted_status', $statusFilter);
@@ -80,90 +81,126 @@ class VisualisasiController extends Controller
     
     private function getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter)
     {
-        $query = StudentValue::select('key', DB::raw('AVG(CAST(value AS DECIMAL(10,2))) as average'))
+        // Query untuk nilai akademik
+        $academicQuery = StudentValue::select('key', DB::raw('AVG(CAST(value AS DECIMAL(10,2))) as average'))
             ->join('student', 'student_values.student_id', '=', 'student.id')
-            ->where('value', '!=', '');
+            ->where('value', '!=', '')
+            ->where('student.jenis_data', 'testing')
+            ->whereIn('key', ['semester_1', 'semester_2', 'semester_3', 'semester_4', 'semester_5', 'semester_6', 'usp']);
+            
+        // Query untuk nilai non-akademik
+        $nonAcademicQuery = StudentValue::select('key', 'value')
+            ->join('student', 'student_values.student_id', '=', 'student.id')
+            ->where('value', '!=', '')
+            ->where('student.jenis_data', 'testing')
+            ->whereIn('key', ['sikap', 'kerajinan', 'kerapian']);
             
         if ($tahunAngkatanFilter !== 'all') {
-            $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
+            $academicQuery->where('student.tahun_angkatan', $tahunAngkatanFilter);
+            $nonAcademicQuery->where('student.tahun_angkatan', $tahunAngkatanFilter);
         }
-        
+                
         if ($statusFilter !== 'all') {
-            $query->join('predictions', 'student.id', '=', 'predictions.test_student_id')
+            $academicQuery->join('predictions', 'student.id', '=', 'predictions.test_student_id')
+                ->where('predictions.predicted_status', $statusFilter);
+            $nonAcademicQuery->join('predictions', 'student.id', '=', 'predictions.test_student_id')
                 ->where('predictions.predicted_status', $statusFilter);
         }
-        
-        $results = $query->groupBy('key')
+            
+        $academicResults = $academicQuery->groupBy('key')
             ->pluck('average', 'key')
             ->toArray();
             
+        // Proses nilai non-akademik
+        $nonAcademicResults = $nonAcademicQuery->get()
+            ->groupBy('key')
+            ->map(function($values) {
+                $numericValues = $values->map(function($value) {
+                    return $this->convertAttitudeToNumeric($value->value);
+                });
+                return $numericValues->avg();
+            })
+            ->toArray();
+        
         return [
             'academic' => [
-                'Rata-Rata Semester 1' => $results['semester_1'] ?? 0,
-                'Rata-Rata Semester 2' => $results['semester_2'] ?? 0,
-                'Rata-Rata Semester 3' => $results['semester_3'] ?? 0,
-                'Rata-Rata Semester 4' => $results['semester_4'] ?? 0,
-                'Rata-Rata Semester 5' => $results['semester_5'] ?? 0,
-                'Rata-Rata Semester 6' => $results['semester_6'] ?? 0,
-                'USP' => $results['usp'] ?? 0
+                'Rata-Rata Semester 1' => $academicResults['semester_1'] ?? 0,
+                'Rata-Rata Semester 2' => $academicResults['semester_2'] ?? 0,
+                'Rata-Rata Semester 3' => $academicResults['semester_3'] ?? 0,
+                'Rata-Rata Semester 4' => $academicResults['semester_4'] ?? 0,
+                'Rata-Rata Semester 5' => $academicResults['semester_5'] ?? 0,
+                'Rata-Rata Semester 6' => $academicResults['semester_6'] ?? 0,
+                'USP' => $academicResults['usp'] ?? 0
             ],
             'non_academic' => [
-                'sikap' => $results['sikap'] ?? 0,
-                'kerajinan' => $results['kerajinan'] ?? 0,
-                'kerapian' => $results['kerapian'] ?? 0
+                'sikap' => $nonAcademicResults['sikap'] ?? 0,
+                'kerajinan' => $nonAcademicResults['kerajinan'] ?? 0,
+                'kerapian' => $nonAcademicResults['kerapian'] ?? 0
             ]
         ];
     }
-    
+
+    private function convertAttitudeToNumeric($value)
+    {
+        $value = strtolower(trim($value));
+        $map = [
+            'baik' => 3,
+            'cukup baik' => 2,
+            'kurang baik' => 1,
+            '' => 0
+        ];
+        
+        return $map[$value] ?? 0;
+    }
+
     private function getSemesterTrendData($statusFilter, $semesterFilter, $tahunAngkatanFilter)
     {
-        $semesterKeys = [];
-        foreach ($semesterFilter as $semester) {
-            $semesterKeys[] = "semester_$semester";
-        }
-        
-        if (empty($semesterKeys)) {
-            return [];
-        }
-        
-        $statusCategories = ['lulus', 'lulus bersyarat', 'tidak lulus'];
+        // Jika status filter adalah 'all', tampilkan semua status
+        $statusCategories = $statusFilter === 'all' 
+            ? ['lulus', 'lulus bersyarat', 'tidak lulus']
+            : [$statusFilter];
+            
         $trendData = [];
         
         foreach ($statusCategories as $status) {
-            if ($statusFilter !== 'all' && $statusFilter !== $status) {
-                continue;
-            }
-            
             $studentIds = $this->getStudentIdsByStatus($status, $tahunAngkatanFilter);
             
-            $averages = [];
-            foreach ($semesterKeys as $key) {
-                $query = StudentValue::where('key', $key)
-                    ->where('value', '!=', '');
-                    
-                if (!empty($studentIds)) {
-                    $query->whereIn('student_id', $studentIds);
-                }
-                    
-                $averages[] = $query->avg(DB::raw('CAST(value AS DECIMAL(10,2))')) ?? 0;
+            if (empty($studentIds)) {
+                continue; // Skip jika tidak ada data untuk status ini
             }
             
-            $trendData[$status] = $averages;
+            $averages = [];
+            for ($i = 1; $i <= 6; $i++) {
+                $query = StudentValue::where('key', "semester_$i")
+                    ->where('value', '!=', '')
+                    ->whereIn('student_id', $studentIds)
+                    ->join('student', 'student_values.student_id', '=', 'student.id')
+                    ->where('student.jenis_data', 'testing');
+                    
+                $average = $query->avg(DB::raw('CAST(value AS DECIMAL(10,2))')) ?? 0;
+                // Pastikan nilai dalam rentang 0-100
+                $average = max(0, min(100, $average));
+                $averages[] = round($average, 2);
+            }
+            
+            // Hanya tambahkan ke trendData jika ada nilai yang tidak 0
+            if (array_sum($averages) > 0) {
+                $trendData[$status] = $averages;
+            }
         }
         
         return [
-            'labels' => array_map(function($semester) { 
-                return "Semester $semester"; 
-            }, $semesterFilter),
+            'labels' => ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'],
             'datasets' => $trendData
         ];
     }
-    
+ 
     private function getCorrelationData($statusFilter, $tahunAngkatanFilter)
     {
         $query = StudentValue::select('key', 'value')
             ->join('student', 'student_values.student_id', '=', 'student.id')
-            ->where('value', '!=', '');
+            ->where('value', '!=', '')
+            ->where('student.jenis_data', 'testing');
             
         if ($tahunAngkatanFilter !== 'all') {
             $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
@@ -205,7 +242,8 @@ class VisualisasiController extends Controller
     {
         $query = Prediction::select('test_student_id')
             ->join('student', 'predictions.test_student_id', '=', 'student.id')
-            ->where('predicted_status', $status);
+            ->where('predicted_status', $status)
+            ->where('student.jenis_data', 'testing');
             
         if ($tahunAngkatanFilter !== 'all') {
             $query->where('student.tahun_angkatan', $tahunAngkatanFilter);

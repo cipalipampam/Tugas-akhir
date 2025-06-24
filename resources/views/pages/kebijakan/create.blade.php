@@ -28,69 +28,69 @@
                                 @csrf
                                 <div id="rules-container">
                                     <div class="rule-entry mb-4 p-3 border rounded">
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label class="form-label">Jenis Nilai</label>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Jenis Nilai</label>
                                                     <select class="form-select @error('rules.0.attribute') is-invalid @enderror"
                                                         name="rules[0][attribute]" required>
-                                                        <option value="">Pilih Jenis Nilai</option>
+                                                <option value="">Pilih Jenis Nilai</option>
                                                         <option value="rata_rata">Rata-rata Nilai</option>
                                                         <option value="usp">Nilai USP</option>
                                                         <option value="sikap">Sikap</option>
                                                         <option value="kerajinan">Kerajinan</option>
                                                         <option value="kerapian">Kerapian</option>
-                                                    </select>
+                                            </select>
                                                     <small class="form-text text-muted">Pilih jenis nilai yang akan digunakan</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label class="form-label">Kondisi</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Kondisi</label>
                                                     <select class="form-select @error('rules.0.operator') is-invalid @enderror"
                                                         name="rules[0][operator]" required>
-                                                        <option value="">Pilih Kondisi</option>
+                                                <option value="">Pilih Kondisi</option>
                                                         <option value=">">Lebih dari</option>
                                                         <option value="<">Kurang dari</option>
                                                         <option value="=">Sama dengan</option>
                                                         <option value=">=">Lebih dari atau sama dengan</option>
                                                         <option value="<=">Kurang dari atau sama dengan</option>
-                                                    </select>
-                                                    <small class="form-text text-muted">Pilih kondisi perbandingan</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label class="form-label">Nilai Patokan</label>
-                                                    <input type="number"
+                                            </select>
+                                            <small class="form-text text-muted">Pilih kondisi perbandingan</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Nilai Patokan</label>
+                                            <input type="number"
                                                         class="form-control @error('rules.0.value') is-invalid @enderror"
                                                         name="rules[0][value]" step="0.01" required>
                                                     <small class="form-text text-muted">Masukkan nilai patokan</small>
-                                                </div>
-                                            </div>
                                         </div>
+                                    </div>
+                                </div>
 
-                                        <div class="row mt-3">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label class="form-label">Hasil Jika Syarat Terpenuhi</label>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Hasil Jika Syarat Terpenuhi</label>
                                                     <select class="form-select @error('rules.0.category') is-invalid @enderror"
                                                         name="rules[0][category]" required>
-                                                        <option value="">Pilih Hasil</option>
+                                                <option value="">Pilih Hasil</option>
                                                         <option value="lulus">Lulus</option>
                                                         <option value="lulus bersyarat">Lulus Bersyarat</option>
                                                         <option value="tidak lulus">Tidak Lulus</option>
-                                                    </select>
-                                                    <small class="form-text text-muted">Pilih hasil prediksi</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label class="form-label">Urutan Aturan</label>
-                                                    <input type="number"
+                                            </select>
+                                            <small class="form-text text-muted">Pilih hasil prediksi</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Urutan Aturan</label>
+                                            <input type="number"
                                                         class="form-control @error('rules.0.priority') is-invalid @enderror"
                                                         name="rules[0][priority]" min="1" required>
-                                                    <small class="form-text text-muted">1 = paling penting</small>
+                                            <small class="form-text text-muted">1 = paling penting</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -130,25 +130,25 @@
                 const valueHelp = valueInput.nextElementSibling;
 
                 function updateConstraints() {
-                    const selectedAttribute = attributeSelect.value;
+                const selectedAttribute = attributeSelect.value;
 
-                    if (selectedAttribute === 'sikap' || selectedAttribute === 'kerajinan' || selectedAttribute === 'kerapian') {
-                        valueInput.min = '0';
-                        valueInput.max = '1';
-                        valueInput.step = '0.1';
-                        valueHelp.textContent = 'Masukkan nilai antara 0 dan 1';
-                    } else if (selectedAttribute === 'rata_rata' || selectedAttribute === 'usp') {
-                        valueInput.min = '0';
-                        valueInput.max = '100';
-                        valueInput.step = '0.01';
-                        valueHelp.textContent = 'Masukkan nilai antara 0 dan 100';
-                    } else {
-                        valueInput.removeAttribute('min');
-                        valueInput.removeAttribute('max');
-                        valueInput.step = '0.01';
-                        valueHelp.textContent = 'Masukkan nilai patokan';
-                    }
+                if (selectedAttribute === 'sikap' || selectedAttribute === 'kerajinan' || selectedAttribute === 'kerapian') {
+                    valueInput.min = '0';
+                    valueInput.max = '1';
+                    valueInput.step = '0.1';
+                    valueHelp.textContent = 'Masukkan nilai antara 0 dan 1';
+                } else if (selectedAttribute === 'rata_rata' || selectedAttribute === 'usp') {
+                    valueInput.min = '0';
+                    valueInput.max = '100';
+                    valueInput.step = '0.01';
+                    valueHelp.textContent = 'Masukkan nilai antara 0 dan 100';
+                } else {
+                    valueInput.removeAttribute('min');
+                    valueInput.removeAttribute('max');
+                    valueInput.step = '0.01';
+                    valueHelp.textContent = 'Masukkan nilai patokan';
                 }
+            }
 
                 attributeSelect.addEventListener('change', updateConstraints);
                 updateConstraints();
@@ -194,22 +194,22 @@
                 for (let entry of ruleEntries) {
                     const attributeSelect = entry.querySelector('select[name^="rules"][name$="[attribute]"]');
                     const valueInput = entry.querySelector('input[name^="rules"][name$="[value]"]');
-                    const selectedAttribute = attributeSelect.value;
-                    const value = parseFloat(valueInput.value);
+                const selectedAttribute = attributeSelect.value;
+                const value = parseFloat(valueInput.value);
 
-                    if (selectedAttribute === 'sikap' || selectedAttribute === 'kerajinan' || selectedAttribute === 'kerapian') {
-                        if (value < 0 || value > 1) {
-                            e.preventDefault();
+                if (selectedAttribute === 'sikap' || selectedAttribute === 'kerajinan' || selectedAttribute === 'kerapian') {
+                    if (value < 0 || value > 1) {
+                        e.preventDefault();
                             alert(`Nilai untuk ${selectedAttribute} harus antara 0 dan 1`);
-                            valueInput.focus();
+                        valueInput.focus();
                             isValid = false;
                             break;
-                        }
-                    } else if (selectedAttribute === 'rata_rata' || selectedAttribute === 'usp') {
-                        if (value < 0 || value > 100) {
-                            e.preventDefault();
+                    }
+                } else if (selectedAttribute === 'rata_rata' || selectedAttribute === 'usp') {
+                    if (value < 0 || value > 100) {
+                        e.preventDefault();
                             alert(`Nilai untuk ${selectedAttribute} harus antara 0 dan 100`);
-                            valueInput.focus();
+                        valueInput.focus();
                             isValid = false;
                             break;
                         }

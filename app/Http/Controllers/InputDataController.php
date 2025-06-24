@@ -78,7 +78,6 @@ public function index()
             ]);
         }
     }
-
     public function simpanData(Request $request)
     {
         $data = $request->input('data');
