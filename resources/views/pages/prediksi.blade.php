@@ -75,161 +75,162 @@
                             <!-- Manual Input Form & Hasil Manual -->
                             <div id="manual-section" class="manual-section {{ ($activeInputMethod ?? 'manual') == 'manual' ? '' : 'd-none' }}">
                                 <form method="POST" action="{{ route('prediction.process') }}" id="manual_form">
-                                    @csrf
-                                    <div class="row">
-                                        <!-- Data Siswa -->
-                                        <div class="col-md-12 mb-4">
-                                            <div class="card border shadow-sm">
-                                                <div class="card-header bg-light p-3">
-                                                    <h6 class="mb-0 text-primary">Data Siswa</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6 mb-3">
-                                                            <div class="form-group">
-                                                                <label for="name" class="form-label">Nama Siswa</label>
-                                                                <input type="text" name="data[nama]" class="form-control"
-                                                                    placeholder="Masukkan Nama Siswa" required>
-                                                            </div>
+                                @csrf
+                                <div class="row">
+                                    <!-- Data Siswa -->
+                                    <div class="col-md-12 mb-4">
+                                        <div class="card border shadow-sm">
+                                            <div class="card-header bg-light p-3">
+                                                <h6 class="mb-0 text-primary">Data Siswa</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <div class="form-group">
+                                                            <label for="name" class="form-label">Nama Siswa</label>
+                                                            <input type="text" name="data[nama]" class="form-control"
+                                                                placeholder="Masukkan Nama Siswa" required>
                                                         </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <div class="form-group">
-                                                                <label for="nisn" class="form-label">NISN</label>
-                                                                <input type="text" name="data[nisn]" class="form-control"
-                                                                    placeholder="Masukkan NISN Siswa" required>
-                                                            </div>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <div class="form-group">
+                                                            <label for="nisn" class="form-label">NISN</label>
+                                                            <input type="text" name="data[nisn]" class="form-control"
+                                                                placeholder="Masukkan NISN Siswa" required>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <!-- Data Akademik -->
-                                        <div class="col-md-8 mb-4">
-                                            <div class="card border shadow-sm h-100">
-                                                <div class="card-header bg-light p-3">
-                                                    <h6 class="mb-0 text-primary">Data Akademik</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-12">
-                                                            <div class="table-responsive">
-                                                                <table class="table align-items-center mb-0">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th
-                                                                                class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                                                                Semester</th>
-                                                                            <th
-                                                                                class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                                                                Nilai Rata-rata</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        @for ($i = 1; $i <= 6; $i++)
-                                                                            <tr>
-                                                                                <td>
-                                                                                    <div class="d-flex px-2 py-1">
-                                                                                        <div
-                                                                                            class="d-flex flex-column justify-content-center">
-                                                                                            <h6 class="mb-0 text-sm">Semester
-                                                                                                {{ $i }}</h6>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <input type="number" step="0.01"
-                                                                                        name="data[semester_{{ $i }}]"
-                                                                                        class="form-control form-control-sm"
-                                                                                        placeholder="0.00">
-                                                                                </td>
-                                                                            </tr>
-                                                                        @endfor
+                                    <!-- Data Akademik -->
+                                    <div class="col-md-8 mb-4">
+                                        <div class="card border shadow-sm h-100">
+                                            <div class="card-header bg-light p-3">
+                                                <h6 class="mb-0 text-primary">Data Akademik</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="table-responsive">
+                                                            <table class="table align-items-center mb-0">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th
+                                                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
+                                                                            Semester</th>
+                                                                        <th
+                                                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
+                                                                            Nilai Rata-rata</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @for ($i = 1; $i <= 6; $i++)
                                                                         <tr>
                                                                             <td>
                                                                                 <div class="d-flex px-2 py-1">
                                                                                     <div
                                                                                         class="d-flex flex-column justify-content-center">
-                                                                                        <h6 class="mb-0 text-sm">Nilai USP
-                                                                                        </h6>
+                                                                                        <h6 class="mb-0 text-sm">Semester
+                                                                                            {{ $i }}</h6>
                                                                                     </div>
                                                                                 </div>
                                                                             </td>
                                                                             <td>
-                                                                                <input type="number" step="0.01"
-                                                                                    name="data[usp]"
+                                                                                    <input type="number" step="0.1" min="0" max="100"
+                                                                                    name="data[semester_{{ $i }}]"
                                                                                     class="form-control form-control-sm"
-                                                                                    placeholder="0.00">
+                                                                                    placeholder="0.00" 
+                                                                                    oninput="validasiInput(this)">
                                                                             </td>
                                                                         </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
+                                                                    @endfor
+                                                                    <tr>
+                                                                        <td>
+                                                                            <div class="d-flex px-2 py-1">
+                                                                                <div
+                                                                                    class="d-flex flex-column justify-content-center">
+                                                                                    <h6 class="mb-0 text-sm">Nilai USP
+                                                                                    </h6>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>
+                                                                            <input type="number" step="0.01"
+                                                                                name="data[usp]"
+                                                                                class="form-control form-control-sm"
+                                                                                placeholder="0.00">
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <!-- Data Non-Akademik & Parameter -->
-                                        <div class="col-md-4 mb-4">
-                                            <div class="card border shadow-sm mb-4">
-                                                <div class="card-header bg-light p-3">
-                                                    <h6 class="mb-0 text-primary">Data Non-Akademik</h6>
+                                    <!-- Data Non-Akademik & Parameter -->
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card border shadow-sm mb-4">
+                                            <div class="card-header bg-light p-3">
+                                                <h6 class="mb-0 text-primary">Data Non-Akademik</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-group mb-3">
+                                                    <label for="sikap" class="form-label">Sikap</label>
+                                                    <select name="data[sikap]" class="form-select">
+                                                        <option value="">Pilih</option>
+                                                        <option value="baik">Baik</option>
+                                                        <option value="cukup baik">Cukup Baik</option>
+                                                        <option value="kurang baik">Kurang Baik</option>
+                                                    </select>
                                                 </div>
-                                                <div class="card-body">
-                                                    <div class="form-group mb-3">
-                                                        <label for="sikap" class="form-label">Sikap</label>
-                                                        <select name="data[sikap]" class="form-select">
-                                                            <option value="">Pilih</option>
-                                                            <option value="baik">Baik</option>
-                                                            <option value="cukup baik">Cukup Baik</option>
-                                                            <option value="kurang baik">Kurang Baik</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="form-group mb-3">
-                                                        <label for="kerapian" class="form-label">Kerapian</label>
-                                                        <select name="data[kerapian]" class="form-select">
-                                                            <option value="">Pilih</option>
-                                                            <option value="baik">Baik</option>
-                                                            <option value="cukup baik">Cukup Baik</option>
-                                                            <option value="kurang baik">Kurang Baik</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label for="kerajinan" class="form-label">Kerajinan</label>
-                                                        <select name="data[kerajinan]" class="form-select">
-                                                            <option value="">Pilih</option>
-                                                            <option value="baik">Baik</option>
-                                                            <option value="cukup baik">Cukup Baik</option>
-                                                            <option value="kurang baik">Kurang Baik</option>
-                                                        </select>
-                                                    </div>
+                                                <div class="form-group mb-3">
+                                                    <label for="kerapian" class="form-label">Kerapian</label>
+                                                    <select name="data[kerapian]" class="form-select">
+                                                        <option value="">Pilih</option>
+                                                        <option value="baik">Baik</option>
+                                                        <option value="cukup baik">Cukup Baik</option>
+                                                        <option value="kurang baik">Kurang Baik</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="kerajinan" class="form-label">Kerajinan</label>
+                                                    <select name="data[kerajinan]" class="form-select">
+                                                        <option value="">Pilih</option>
+                                                        <option value="baik">Baik</option>
+                                                        <option value="cukup baik">Cukup Baik</option>
+                                                        <option value="kurang baik">Kurang Baik</option>
+                                                    </select>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <div class="card border shadow-sm">
-                                                <div class="card-header bg-light p-3">
-                                                    <h6 class="mb-0 text-primary">Parameter</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="form-group">
-                                                        <label for="k_value" class="form-label">Nilai K</label>
-                                                        <input type="number" name="k_value" id="k_value"
-                                                            class="form-control" value="5" min="1">
-                                                        <small class="text-muted">Jumlah tetangga terdekat</small>
-                                                    </div>
+                                        <div class="card border shadow-sm">
+                                            <div class="card-header bg-light p-3">
+                                                <h6 class="mb-0 text-primary">Parameter</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-group">
+                                                    <label for="k_value" class="form-label">Nilai K</label>
+                                                    <input type="number" name="k_value" id="k_value"
+                                                        class="form-control" value="5" min="1">
+                                                    <small class="text-muted">Jumlah tetangga terdekat</small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="text-center mt-4">
-                                        <button type="submit" class="btn btn-primary btn-lg px-5">
-                                            <i class="fas fa-brain me-2"></i>Prediksi Kelulusan
-                                        </button>
-                                    </div>
-                                </form>
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                                        <i class="fas fa-brain me-2"></i>Prediksi Kelulusan
+                                    </button>
+                                </div>
+                            </form>
                                 @if(isset($manualPrediction))
                                     <div class="card shadow-sm mt-4">
                                         <div class="card-header bg-light p-3 d-flex justify-content-between align-items-center">
@@ -304,78 +305,78 @@
                             <!-- Excel Input Form & Hasil Excel -->
                             <div id="excel-section" class="excel-section {{ ($activeInputMethod ?? '') == 'excel' ? '' : 'd-none' }}">
                                 <form method="POST" action="{{ route('prediction.upload.excel') }}" enctype="multipart/form-data">
-                                    @csrf
-                                    <div class="row">
-                                        <div class="col-md-8 mb-4">
-                                            <div class="card border shadow-sm">
-                                                <div class="card-header bg-light p-3">
-                                                    <h6 class="mb-0 text-primary">Upload File Excel</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-12">
-                                                            <div class="form-group mb-3">
-                                                                <label for="excel_file" class="form-label">Pilih File
-                                                                    Excel</label>
-                                                                <div class="input-group">
-                                                                    <input type="file" class="form-control" id="excel_file"
-                                                                        name="excel_file" accept=".xlsx, .xls, .csv"
-                                                                        required>
-                                                                    <a href="{{ route('template.download') }}"
-                                                                        class="btn btn-outline-primary">
-                                                                        <i class="fas fa-download me-1"></i> Template
-                                                                    </a>
-                                                                </div>
-                                                                <small class="text-muted">Format file: .xls, .xlsx, atau
-                                                                    .csv</small>
+                                @csrf
+                                <div class="row">
+                                    <div class="col-md-8 mb-4">
+                                        <div class="card border shadow-sm">
+                                            <div class="card-header bg-light p-3">
+                                                <h6 class="mb-0 text-primary">Upload File Excel</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="form-group mb-3">
+                                                            <label for="excel_file" class="form-label">Pilih File
+                                                                Excel</label>
+                                                            <div class="input-group">
+                                                                <input type="file" class="form-control" id="excel_file"
+                                                                    name="excel_file" accept=".xlsx, .xls, .csv"
+                                                                    required>
+                                                                <a href="{{ route('template.download') }}"
+                                                                    class="btn btn-outline-primary">
+                                                                    <i class="fas fa-download me-1"></i> Template
+                                                                </a>
                                                             </div>
+                                                            <small class="text-muted">Format file: .xls, .xlsx, atau
+                                                                .csv</small>
+                                                        </div>
 
-                                                            <div class="alert alert-info">
-                                                                <i class="fas fa-info-circle me-2"></i>
-                                                                <strong>Panduan Import Excel:</strong>
-                                                                <ol class="mb-0 ps-3 mt-2">
-                                                                    <li>Unduh template Excel menggunakan tombol "Template"
-                                                                    </li>
-                                                                    <li>Isi data siswa sesuai format (nama, NISN, nilai
-                                                                        semester 1-6, USP, sikap, kerapian, kerajinan)</li>
-                                                                    <li>Simpan file Excel Anda</li>
-                                                                    <li>Unggah kembali menggunakan form di atas</li>
-                                                                </ol>
-                                                            </div>
+                                                        <div class="alert alert-info">
+                                                            <i class="fas fa-info-circle me-2"></i>
+                                                            <strong>Panduan Import Excel:</strong>
+                                                            <ol class="mb-0 ps-3 mt-2">
+                                                                <li>Unduh template Excel menggunakan tombol "Template"
+                                                                </li>
+                                                                <li>Isi data siswa sesuai format (nama, NISN, nilai
+                                                                    semester 1-6, USP, sikap, kerapian, kerajinan)</li>
+                                                                <li>Simpan file Excel Anda</li>
+                                                                <li>Unggah kembali menggunakan form di atas</li>
+                                                            </ol>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div class="col-md-4 mb-4">
-                                            <div class="card border shadow-sm">
-                                                <div class="card-header bg-light p-3">
-                                                    <h6 class="mb-0 text-primary">Parameter</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="form-group">
-                                                        <label for="k_value_excel" class="form-label">Nilai K</label>
-                                                        <input type="number" name="k_value" id="k_value_excel"
-                                                            class="form-control" value="5" min="1" required>
-                                                        <small class="text-muted">Jumlah tetangga terdekat</small>
-                                                    </div>
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card border shadow-sm">
+                                            <div class="card-header bg-light p-3">
+                                                <h6 class="mb-0 text-primary">Parameter</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-group">
+                                                    <label for="k_value_excel" class="form-label">Nilai K</label>
+                                                    <input type="number" name="k_value" id="k_value_excel"
+                                                        class="form-control" value="5" min="1" required>
+                                                    <small class="text-muted">Jumlah tetangga terdekat</small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="text-center mt-4">
-                                        <button type="submit" class="btn btn-primary btn-lg px-5">
-                                            <i class="fas fa-brain me-2"></i>Prediksi Kelulusan
-                                        </button>
-                                    </div>
-                                </form>
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                                        <i class="fas fa-brain me-2"></i>Prediksi Kelulusan
+                                    </button>
+                                </div>
+                            </form>
                                 @if(isset($excelPredictions) && count($excelPredictions) > 0)
                                     <div class="row mt-4">
                                         <div class="col-12">
                                             <div class="card shadow-sm">
-                                                <div class="card-header bg-light p-3 d-flex justify-content-between align-items-center">
+                                    <div class="card-header bg-light p-3 d-flex justify-content-between align-items-center">
                                                     <h6 class="mb-0"><i class="fas fa-users me-2"></i>Hasil Prediksi Siswa (Batch Excel)</h6>
                                                     <span class="badge bg-primary">Total: {{ count($excelPredictions) }}</span>
                                                 </div>
@@ -384,32 +385,32 @@
                                                         @foreach($excelPredictions as $pred)
                                                             <div class="col-md-4 mb-4">
                                                                 <div class="card border shadow-sm h-100">
-                                                                    <div class="card-header bg-light">
+                                                <div class="card-header bg-light">
                                                                         <h6 class="mb-0">NISN: {{ $pred['nisn'] }}</h6>
-                                                                    </div>
+                                                </div>
                                                                     <div class="card-body">
                                                                         <div><b>Nama:</b> {{ $pred['name'] }}</div>
                                                                         <div class="mt-2">
                                                                             <b>Status:</b>
                                                                             <span class="badge bg-{{ $pred['status'] == 'lulus' ? 'success' : ($pred['status'] == 'lulus bersyarat' ? 'warning' : 'danger') }} px-3 py-2">
                                                                                 {{ ucwords($pred['status']) }}
-                                                                            </span>
-                                                                        </div>
+                                                                    </span>
+                                                                </div>
                                                                         @if(isset($pred['neighbors']) && count($pred['neighbors']) > 0)
                                                                             <div class="mt-3">
                                                                                 <b>Data Tetangga Terdekat:</b>
                                                                                 <div class="table-responsive mt-2">
                                                                                     <table class="table table-sm table-bordered mb-0">
-                                                                                        <thead class="bg-light">
-                                                                                            <tr>
+                                                        <thead class="bg-light">
+                                                            <tr>
                                                                                                 <th>NISN</th>
-                                                                                                <th>Nama</th>
-                                                                                                <th>Status</th>
-                                                                                                <th>Jarak</th>
+                                                                <th>Nama</th>
+                                                                <th>Status</th>
+                                                                <th>Jarak</th>
                                                                                                 <th>Bobot</th>
-                                                                                            </tr>
-                                                                                        </thead>
-                                                                                        <tbody>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
                                                                                             @foreach($pred['neighbors'] as $neighbor)
                                                                                                 <tr>
                                                                                                     <td>{{ $neighbor['nisn'] }}</td>
@@ -417,14 +418,14 @@
                                                                                                     <td>
                                                                                                         <span class="badge bg-{{ $neighbor['true_status'] == 'lulus' ? 'success' : ($neighbor['true_status'] == 'lulus bersyarat' ? 'warning' : 'danger') }}">
                                                                                                             {{ ucwords($neighbor['true_status']) }}
-                                                                                                        </span>
-                                                                                                    </td>
+                                                                                                                    </span>
+                                                                                                                </td>
                                                                                                     <td>{{ number_format($neighbor['distance'], 4) }}</td>
                                                                                                     <td>{{ number_format($neighbor['weight'], 4) }}</td>
-                                                                                                </tr>
-                                                                                            @endforeach
-                                                                                        </tbody>
-                                                                                    </table>
+                                                                                                            </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
                                                                                 </div>
                                                                             </div>
                                                                         @endif
@@ -438,16 +439,26 @@
                                         </div>
                                     </div>
                                 @endif
-                            </div>
+                                </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+    <x-plugins></x-plugins>
 
     @push('js')
         <script>
+            function validasiInput(el) {
+    let value = parseFloat(el.value);
+    if (isNaN(value)) {
+        el.value = '';
+        return;
+    }
+    if (value < 0) el.value = 0;
+    if (value > 100) el.value = 100;
+}
             function toggleInputMethod(method) {
                 document.getElementById('manual-section').classList.add('d-none');
                 document.getElementById('excel-section').classList.add('d-none');

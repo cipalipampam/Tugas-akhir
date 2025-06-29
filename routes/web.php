@@ -33,9 +33,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/user-profile', [ProfileController::class, 'create'])->name('user-profile');
     Route::put('/user-profile', [ProfileController::class, 'update'])->name('user-profile.update');
     Route::get('/user-management', [ProfileController::class, 'index'])->name('user-management');
-    Route::get('/input-data', [ProfileController::class, 'inputData'])->name('input-data');
-    Route::post('/preview-excel', [InputDataController::class, 'preview'])->name('preview.excel');
-    Route::post('/simpan-data', [InputDataController::class, 'simpanData'])->name('simpan.data');
     Route::get('/prediksi', [PrediksiController::class, 'index'])->name('prediksi');
     Route::post('/prediksi', [PrediksiController::class, 'processAndPredict'])->name('prediction.process');
     Route::get('/prediksi/hasil/{id}', [PrediksiController::class, 'showResult'])->name('prediction.result');
@@ -56,7 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/download-template', [InputDataController::class, 'downloadTemplate'])->name('download.template');
 
     // Kebijakan routes
-    Route::middleware([\App\Http\Middleware\CheckRole::class.':superadministrator'])->group(function () {
+    Route::middleware([\App\Http\Middleware\CheckRole::class . ':superadministrator'])->group(function () {
         Route::get('/kebijakan', [KebijakanController::class, 'index'])->name('kebijakan.index');
         Route::get('/kebijakan/create', [KebijakanController::class, 'create'])->name('kebijakan.create');
         Route::post('/kebijakan', [KebijakanController::class, 'store'])->name('kebijakan.store');
@@ -64,7 +61,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // User management routes
-    Route::middleware(['auth', \App\Http\Middleware\CheckRole::class.':superadministrator'])->group(function () {
+    Route::middleware(['auth', \App\Http\Middleware\CheckRole::class . ':superadministrator'])->group(function () {
+        Route::get('/input-data', [ProfileController::class, 'inputData'])->name('input-data');
+        Route::post('/preview-excel', [InputDataController::class, 'preview'])->name('preview.excel');
+        Route::post('/simpan-data', [InputDataController::class, 'simpanData'])->name('simpan.data');
         Route::get('/user-management', [UserManagementController::class, 'index'])->name('user-management.index');
         Route::get('/user-management/create', [UserManagementController::class, 'create'])->name('user-management.create');
         Route::post('/user-management', [UserManagementController::class, 'store'])->name('user-management.store');

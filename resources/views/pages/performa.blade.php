@@ -192,7 +192,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Metric Explanations -->
+                                    <!-- Metric Explanations
                                     <div class="card border shadow-sm mt-4">
                                         <div class="card-header bg-light p-3">
                                             <h6 class="mb-0 text-primary">Penjelasan Metrik</h6>
@@ -217,7 +217,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                             @endif
