@@ -14,7 +14,9 @@ class Evaluations extends Model
         'confusion_matrix',
         'precision',
         'recall',
-        'f1_score'
+        'f1_score',
+        'training_data_count',
+        'test_data_count'
     ];
 
     protected $casts = [

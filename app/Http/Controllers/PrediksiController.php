@@ -154,13 +154,32 @@ class PrediksiController extends Controller
         Log::info("Memulai proses prediksi untuk siswa", ['student_id' => $testStudent->id]);
         $this->predictForStudent($testStudent, $k);
 
-        Log::info("=== SELESAI PROSES PREDIKSI MANUAL ===", [
-            'student_id' => $testStudent->id,
-            'redirect_to' => route('prediction.result', ['id' => $testStudent->id])
-        ]);
-
-        return redirect()->route('prediction.result', ['id' => $testStudent->id])
-            ->with('success', 'Prediksi berhasil dilakukan.');
+        // Ambil hasil prediksi manual
+        $prediction = Prediction::where('test_student_id', $testStudent->id)->first();
+        $neighbors = \App\Models\DistanceCalculation::with(['trainingStudent', 'weightCalculation'])
+            ->where('test_student_id', $testStudent->id)
+            ->orderBy('distance')
+            ->limit($k)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'nisn' => $item->trainingStudent->nisn ?? '-',
+                    'nama' => $item->trainingStudent->name ?? '-',
+                    'true_status' => $item->trainingStudent->true_status ?? '-',
+                    'distance' => $item->distance,
+                    'weight' => optional($item->weightCalculation)->weight,
+                ];
+            })->toArray();
+        $manualPrediction = [
+            'nisn' => $testStudent->nisn,
+            'name' => $testStudent->name,
+            'status' => $prediction ? $prediction->predicted_status : '-',
+            'neighbors' => $neighbors
+        ];
+        return view('pages.prediksi', [
+            'manualPrediction' => $manualPrediction,
+            'activeInputMethod' => 'manual'
+        ])->with('success', 'Prediksi berhasil dilakukan.');
     }
 
     // ==================== FUNGSI PENENTUAN STATUS KELULUSAN ====================
@@ -810,11 +829,11 @@ private function getMinMaxPerFeatureFromTraining()
                 }
                 $existingNISNs[] = $nisn;
 
-                // Check if NISN already exists in database
-                if (Student::where('nisn', $nisn)->exists()) {
-                    Log::error("NISN sudah terdaftar di database", ['nisn' => $nisn]);
+                // Check if NISN already exists as training data
+                if (Student::where('nisn', $nisn)->where('jenis_data', 'training')->exists()) {
+                    Log::error("NISN sudah terdaftar sebagai data latih", ['nisn' => $nisn]);
                     DB::rollback();
-                    return back()->with('error', "NISN sudah terdaftar: $nisn");
+                    return back()->with('error', "NISN sudah terdaftar sebagai data latih: $nisn");
                 }
 
                 // Simpan siswa sebagai testing
@@ -871,20 +890,35 @@ private function getMinMaxPerFeatureFromTraining()
                 $this->predictForStudent($testStudent, $k);
             }
 
-            // If we have at least one student, redirect to the result page for the first student
-            if (count($insertedStudents) > 0) {
-                $firstStudent = $insertedStudents[0];
-                Log::info("=== SELESAI PROSES UPLOAD EXCEL DAN PREDIKSI ===", [
-                    'total_processed' => count($insertedStudents),
-                    'redirect_to_student_id' => $firstStudent->id,
-                    'redirect_url' => route('prediction.result', ['id' => $firstStudent->id])
-                ]);
-                
-                return redirect()->route('prediction.result', ['id' => $firstStudent->id])
-                    ->with('success', 'Data Excel berhasil diproses dan diprediksi.');
+            // Ambil hasil prediksi untuk semua siswa
+            $excelPredictions = [];
+            foreach ($insertedStudents as $student) {
+                $prediction = Prediction::where('test_student_id', $student->id)->first();
+                $neighbors = \App\Models\DistanceCalculation::with(['trainingStudent', 'weightCalculation'])
+                    ->where('test_student_id', $student->id)
+                    ->orderBy('distance')
+                    ->limit($k)
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'nisn' => $item->trainingStudent->nisn ?? '-',
+                            'nama' => $item->trainingStudent->name ?? '-',
+                            'true_status' => $item->trainingStudent->true_status ?? '-',
+                            'distance' => $item->distance,
+                            'weight' => optional($item->weightCalculation)->weight,
+                        ];
+                    })->toArray();
+                $excelPredictions[] = [
+                    'nisn' => $student->nisn,
+                    'name' => $student->name,
+                    'status' => $prediction ? $prediction->predicted_status : '-',
+                    'neighbors' => $neighbors
+                ];
             }
-
-            return response()->json(['status' => 'success', 'message' => 'Data berhasil diproses dan diprediksi.']);
+            return view('pages.prediksi', [
+                'excelPredictions' => $excelPredictions,
+                'activeInputMethod' => 'excel'
+            ])->with('success', 'Data Excel berhasil diproses dan diprediksi.');
 
         } catch (\Exception $e) {
             Log::error("Error dalam upload Excel dan prediksi", [

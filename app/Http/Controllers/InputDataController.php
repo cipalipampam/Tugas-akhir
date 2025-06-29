@@ -103,8 +103,8 @@ public function index()
                     continue;
                 }
 
-                // Lewati jika siswa sudah ada
-                if (Student::where('nisn', $nisn)->exists()) {
+                // Lewati jika siswa sudah ada sebagai data latih
+                if ($jenisData === 'training' && Student::where('nisn', $nisn)->where('jenis_data', 'training')->exists()) {
                     continue;
                 }
 

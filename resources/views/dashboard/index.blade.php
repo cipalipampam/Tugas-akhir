@@ -162,7 +162,7 @@
                 new Chart(ctx1, {
                     type: "pie",
             data: {
-                        labels: ["Lulus", "Lulus Bersyarat", "Tidak Lulus"],
+                        labels: ["lulus", "lulus bersyarat", "tidak lulus"],
                 datasets: [{
                             data: [
                                 {{ $graduationStats['lulus'] }},
