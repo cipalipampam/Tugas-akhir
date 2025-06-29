@@ -170,11 +170,13 @@ class PrediksiController extends Controller
                     'weight' => optional($item->weightCalculation)->weight,
                 ];
             })->toArray();
+        $ratios = \App\Models\WeightRatio::where('test_student_id', $testStudent->id)->get(['class', 'total_weight', 'weight_ratio']);
         $manualPrediction = [
             'nisn' => $testStudent->nisn,
             'name' => $testStudent->name,
             'status' => $prediction ? $prediction->predicted_status : '-',
-            'neighbors' => $neighbors
+            'neighbors' => $neighbors,
+            'ratios' => $ratios
         ];
         return view('pages.prediksi', [
             'manualPrediction' => $manualPrediction,
@@ -908,11 +910,13 @@ private function getMinMaxPerFeatureFromTraining()
                             'weight' => optional($item->weightCalculation)->weight,
                         ];
                     })->toArray();
+                $ratios = \App\Models\WeightRatio::where('test_student_id', $student->id)->get(['class', 'total_weight', 'weight_ratio']);
                 $excelPredictions[] = [
                     'nisn' => $student->nisn,
                     'name' => $student->name,
                     'status' => $prediction ? $prediction->predicted_status : '-',
-                    'neighbors' => $neighbors
+                    'neighbors' => $neighbors,
+                    'ratios' => $ratios
                 ];
             }
             return view('pages.prediksi', [

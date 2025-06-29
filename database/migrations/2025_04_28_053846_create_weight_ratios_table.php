@@ -15,6 +15,7 @@ class CreateWeightRatiosTable extends Migration
             $table->foreignId('test_student_id')->constrained('student')->onDelete('cascade');
             $table->enum('class', ['lulus', 'lulus bersyarat', 'tidak lulus']);
             $table->decimal('weight_ratio', 10, 5);
+            $table->float('total_weight')->default(0);
             $table->timestamps();
         });
     }
