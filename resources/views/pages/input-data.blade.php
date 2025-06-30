@@ -9,10 +9,16 @@
                         <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                             <div class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center px-4">
                                 <h6 class="text-white text-capitalize ps-3 mb-0">Upload & Preview Data Siswa</h6>
-                                <a href="{{ route('download.template') }}" class="btn btn-sm btn-outline-light">
-                                    <i class="fas fa-download me-1"></i>
-                                    Download Template
-                                </a>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('download.template') }}" class="btn btn-sm btn-outline-light">
+                                        <i class="fas fa-download me-1"></i>
+                                        Download Template
+                                    </a>
+                                    <a href="{{ route('training.index') }}" class="btn btn-sm btn-light text-primary">
+                                        <i class="fas fa-database me-1"></i>
+                                        Kelola Data Latih
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body px-4 pb-4">

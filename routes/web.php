@@ -72,4 +72,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/user-management/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
         Route::delete('/user-management/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
     });
+
+    // Route untuk manajemen data latih (CRUD)
+    Route::get('/data-latih', [App\Http\Controllers\TrainingDataController::class, 'index'])->name('training.index');
+    Route::get('/data-latih/{id}/edit', [App\Http\Controllers\TrainingDataController::class, 'edit'])->name('training.edit');
+    Route::post('/data-latih/{id}/update', [App\Http\Controllers\TrainingDataController::class, 'update'])->name('training.update');
+    Route::delete('/data-latih/{id}', [App\Http\Controllers\TrainingDataController::class, 'destroy'])->name('training.destroy');
 });

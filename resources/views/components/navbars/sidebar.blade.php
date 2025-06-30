@@ -23,7 +23,7 @@
                     <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="material-icons opacity-10">dashboard</i>
                     </div>
-                    <span class="nav-link-text ms-1">Dashboard</span>
+                    <span class="nav-link-text ms-1">Beranda</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -65,44 +65,48 @@
             <li class="nav-item mt-3">
                 <h6 class="ps-4 ms-2 text-uppercase text-xs text-white font-weight-bolder opacity-8">Account pages</h6>
             </li>
-             @if(auth()->user()->role === 'superadministrator')
-               <li class="nav-item">
-                <a class="nav-link text-white {{ $activePage == 'input-data' ? ' active bg-gradient-primary' : '' }} "
-                    href="{{ route('input-data') }}">
-                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="material-icons opacity-10">table_view</i>
-                    </div>
-                    <span class="nav-link-text ms-1">Input Data</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link text-white {{ $activePage == 'kebijakan.index' ? ' active bg-gradient-primary' : '' }}  "
-                    href="{{ route('kebijakan.index') }}">
-                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="material-icons opacity-10">policy</i>
-                    </div>
-                    <span class="nav-link-text ms-1">kebijakan</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link text-white {{ $activePage == 'user-management.index' ? ' active bg-gradient-primary' : '' }}  "
-                    href="{{ route('user-management.index') }}">
-                    <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="material-icons opacity-10">man</i>
-                    </div>
-                    <span class="nav-link-text ms-1">Manajemen User</span>
-                </a>
-            </li>
-            @endif
             <li class="nav-item">
                 <a class="nav-link text-white {{ $activePage == 'profile' ? ' active bg-gradient-primary' : '' }}  "
                     href="{{ route('profile') }}">
                     <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="material-icons opacity-10">person</i>
                     </div>
-                    <span class="nav-link-text ms-1">Profile</span>
+                    <span class="nav-link-text ms-1">Profil</span>
                 </a>
             </li>
+            <li class="nav-item mt-3">
+                <h6 class="ps-4 ms-2 text-uppercase text-xs text-white font-weight-bolder opacity-8">Manajemen Pages
+                </h6>
+            </li>
+            @if(auth()->user()->role === 'superadministrator')
+                <li class="nav-item">
+                    <a class="nav-link text-white {{ $activePage == 'input-data' ? ' active bg-gradient-primary' : '' }} "
+                        href="{{ route('input-data') }}">
+                        <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="material-icons opacity-10">table_view</i>
+                        </div>
+                        <span class="nav-link-text ms-1">Data Latih</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {{ $activePage == 'kebijakan.index' ? ' active bg-gradient-primary' : '' }}  "
+                        href="{{ route('kebijakan.index') }}">
+                        <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="material-icons opacity-10">policy</i>
+                        </div>
+                        <span class="nav-link-text ms-1">Kebijakan</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {{ $activePage == 'user-management.index' ? ' active bg-gradient-primary' : '' }}  "
+                        href="{{ route('user-management.index') }}">
+                        <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="material-icons opacity-10">man</i>
+                        </div>
+                        <span class="nav-link-text ms-1">Manajemen Pengguna</span>
+                    </a>
+                </li>
+            @endif
         </ul>
     </div>
 </aside>
