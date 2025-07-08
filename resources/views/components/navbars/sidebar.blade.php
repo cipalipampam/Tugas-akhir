@@ -26,6 +26,17 @@
                     <span class="nav-link-text ms-1">Beranda</span>
                 </a>
             </li>
+            @if(auth()->user()->role === 'superadministrator')
+                <li class="nav-item">
+                    <a class="nav-link text-white {{ $activePage == 'input-data' ? ' active bg-gradient-primary' : '' }} "
+                        href="{{ route('input-data') }}">
+                        <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="material-icons opacity-10">table_view</i>
+                        </div>
+                        <span class="nav-link-text ms-1">Data Latih</span>
+                    </a>
+                </li>
+            @endif
             <li class="nav-item">
                 <a class="nav-link text-white {{ $activePage == 'prediksi' ? ' active bg-gradient-primary' : '' }}  "
                     href="{{ route('prediksi') }}">
@@ -79,16 +90,8 @@
                 </h6>
             </li>
             @if(auth()->user()->role === 'superadministrator')
-                <li class="nav-item">
-                    <a class="nav-link text-white {{ $activePage == 'input-data' ? ' active bg-gradient-primary' : '' }} "
-                        href="{{ route('input-data') }}">
-                        <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
-                            <i class="material-icons opacity-10">table_view</i>
-                        </div>
-                        <span class="nav-link-text ms-1">Data Latih</span>
-                    </a>
-                </li>
-                <li class="nav-item">
+
+                <!-- <li class="nav-item">
                     <a class="nav-link text-white {{ $activePage == 'kebijakan.index' ? ' active bg-gradient-primary' : '' }}  "
                         href="{{ route('kebijakan.index') }}">
                         <div class="text-white text-center me-2 d-flex align-items-center justify-content-center">
@@ -96,7 +99,7 @@
                         </div>
                         <span class="nav-link-text ms-1">Kebijakan</span>
                     </a>
-                </li>
+                </li> -->
                 <li class="nav-item">
                     <a class="nav-link text-white {{ $activePage == 'user-management.index' ? ' active bg-gradient-primary' : '' }}  "
                         href="{{ route('user-management.index') }}">
@@ -107,6 +110,7 @@
                     </a>
                 </li>
             @endif
+            
         </ul>
     </div>
 </aside>

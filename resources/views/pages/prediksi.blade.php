@@ -313,6 +313,20 @@
                                                     </div>
                                                 </div>
                                             @endif
+                                            @if(isset($manualPrediction['ratios']) && count($manualPrediction['ratios']) > 0)
+                                            <div class="row mt-4">
+                                                <div class="col-12">
+                                                    <div class="card border shadow-sm">
+                                                        <div class="card-header bg-light p-3">
+                                                            <h6 class="mb-0 text-primary"><i class="fas fa-chart-line me-2"></i>Kurva Derajat Keanggotaan Fuzzy</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <canvas id="fuzzyCurveChart" height="120"></canvas>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endif
                                         </div>
                                     </div>
                                 @endif
@@ -405,30 +419,34 @@
                                                                         <h6 class="mb-0">NISN: {{ $pred['nisn'] }}</h6>
                                                 </div>
                                                                     <div class="card-body">
-                                                                        <div><b>Nama:</b> {{ $pred['name'] }}</div>
-                                                                        <div class="mt-2">
-                                                                            <b>Status:</b>
-                                                                            <span class="badge bg-{{ $pred['status'] == 'lulus' ? 'success' : ($pred['status'] == 'lulus bersyarat' ? 'warning' : 'danger') }} px-3 py-2">
-                                                                                {{ ucwords($pred['status']) }}
+                                                                        <div class="row align-items-center">
+                                                                            <div class="col-8">
+                                                                                <div><b>Nama:</b> {{ $pred['name'] }}</div>
+                                                                                <div class="mt-2">
+                                                                                    <b>Status:</b>
+                                                                                    <span class="badge bg-{{ $pred['status'] == 'lulus' ? 'success' : ($pred['status'] == 'lulus bersyarat' ? 'warning' : 'danger') }} px-3 py-2">
+                                                                                        {{ ucwords($pred['status']) }}
                                                                     </span>
                                                                 </div>
-                                                                        @php
-                                                                            $predictedClass = $pred['status'] ?? null;
-                                                                            $ratio = isset($pred['ratios']) ? collect($pred['ratios'])->firstWhere('class', $predictedClass) : null;
-                                                                        @endphp
-                                                                        @if($ratio)
-                                                                            <div class="col-md-3 col-12">
+                                                                            </div>
+                                                                            @php
+                                                                                $predictedClass = $pred['status'] ?? null;
+                                                                                $ratio = isset($pred['ratios']) ? collect($pred['ratios'])->firstWhere('class', $predictedClass) : null;
+                                                                            @endphp
+                                                                            @if($ratio)
+                                                                            <div class="col-4">
                                                                                 <div class="p-3 border rounded bg-white h-100 d-flex flex-column align-items-center">
                                                                                     <div class="mb-2 text-info" style="font-size: 2rem;"><i class="fas fa-balance-scale"></i></div>
-                                                                                    <div class="fw-bold text-secondary">Fuzzy KNN</div>
+                                                                                    <div class="fw-bold text-secondary">Derajat Keanggotaan</div>
                                                                                     <div class="w-100 mt-2">
-                                                                                        <div><b>{{ ucwords($predictedClass) }}</b></div>
-                                                                                        <div>Bobot Fuzzy: {{ number_format($ratio->total_weight, 4) }}</div>
+                                                                                        <!-- <div><b>{{ ucwords($predictedClass) }}</b></div> -->
+                                                                                        <!-- <div>Bobot Fuzzy: {{ number_format($ratio->total_weight, 4) }}</div> -->
                                                                                         <div>μ = {{ number_format($ratio->weight_ratio, 3) }}</div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
-                                                                        @endif
+                                                                            @endif
+                                                                        </div>
                                                                         @if(isset($pred['neighbors']) && count($pred['neighbors']) > 0)
                                                                             <div class="mt-3">
                                                                                 <b>Data Tetangga Terdekat:</b>
@@ -568,5 +586,32 @@
                 }, 5000);
             });
         </script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        @if(isset($manualPrediction['ratios']) && count($manualPrediction['ratios']) > 0)
+        <script>
+            const fuzzyLabels = @json(collect($manualPrediction['ratios'])->pluck('class'));
+            const fuzzyValues = @json(collect($manualPrediction['ratios'])->pluck('weight_ratio'));
+            const ctxFuzzy = document.getElementById('fuzzyCurveChart').getContext('2d');
+            new Chart(ctxFuzzy, {
+                type: 'line',
+                data: {
+                    labels: fuzzyLabels,
+                    datasets: [{
+                        label: 'Derajat Keanggotaan (μ)',
+                        data: fuzzyValues,
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, max: 1 }
+                    }
+                }
+            });
+        </script>
+        @endif
     @endpush
 </x-layout>

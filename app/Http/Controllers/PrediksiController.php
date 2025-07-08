@@ -36,9 +36,9 @@ class PrediksiController extends Controller
     public function showResult($id)
     {
         Log::info("=== MENAMPILKAN HASIL PREDIKSI ===", ['student_id' => $id]);
-        
+
         $testStudent = Student::with('studentValues')->findOrFail($id);
-        
+
         Log::info("Data siswa yang ditemukan", [
             'student_id' => $testStudent->id,
             'nisn' => $testStudent->nisn,
@@ -88,7 +88,7 @@ class PrediksiController extends Controller
     public function processAndPredict(Request $request)
     {
         Log::info("=== MULAI PROSES PREDIKSI MANUAL ===");
-        
+
         $data = $request->input('data');
         $k = $request->input('k_value', 5);  // Default K value to 5 if not provided
 
@@ -142,7 +142,7 @@ class PrediksiController extends Controller
                     'key' => $key,
                     'value' => $value
                 ]);
-                
+
                 Log::info("Nilai siswa disimpan", [
                     'student_id' => $testStudent->id,
                     'key' => $key,
@@ -161,7 +161,7 @@ class PrediksiController extends Controller
             ->orderBy('distance')
             ->limit($k)
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'nisn' => $item->trainingStudent->nisn ?? '-',
                     'nama' => $item->trainingStudent->name ?? '-',
@@ -188,7 +188,7 @@ class PrediksiController extends Controller
     private function tentukanStatusKelulusan($fitur)
     {
         Log::info("=== MULAI PENENTUAN STATUS KELULUSAN ===", ['fitur' => $fitur]);
-        
+
         // Ambil semua aturan kelulusan dan urutkan berdasarkan priority
         $rules = GraduationRule::orderBy('priority')->get();
         Log::info("Aturan kelulusan yang ditemukan", ['rules_count' => $rules->count()]);
@@ -222,7 +222,7 @@ class PrediksiController extends Controller
             ]);
 
             // Evaluasi aturan berdasarkan operator
-            $isRuleMet = match($operator) {
+            $isRuleMet = match ($operator) {
                 '=' => $fiturValue == $ruleValue,
                 '>=' => $fiturValue >= $ruleValue,
                 '<=' => $fiturValue <= $ruleValue,
@@ -270,7 +270,7 @@ class PrediksiController extends Controller
         Log::info("2. Normalisasi Data Testing");
         $testValues = $testStudent->studentValues->pluck('value', 'key');
         Log::info("Data testing sebelum normalisasi", ['testValues' => $testValues->toArray()]);
-        
+
         $testValues = $this->processAndNormalizeData($testValues, $minMax);
         Log::info("Data testing setelah normalisasi", ['normalizedTestValues' => $testValues]);
 
@@ -281,7 +281,7 @@ class PrediksiController extends Controller
             ->where('id', '!=', $testStudent->id)
             ->with('studentValues')
             ->get();
-        
+
         Log::info("Jumlah data training yang ditemukan", ['count' => $trainingStudents->count()]);
 
         // 4. Hitung Jarak ke Setiap Data Training
@@ -296,7 +296,7 @@ class PrediksiController extends Controller
                 'student' => $train,
                 'distance' => $distance
             ];
-            
+
             Log::info("Jarak ke training student", [
                 'training_id' => $train->id,
                 'training_nisn' => $train->nisn,
@@ -309,9 +309,9 @@ class PrediksiController extends Controller
         // 5. Ambil K Tetangga Terdekat
         Log::info("5. Mengambil K Tetangga Terdekat", ['k' => $k]);
         $neighbors = collect($distances)->sortBy('distance')->take($k);
-        
+
         Log::info("K tetangga terdekat", [
-            'neighbors' => $neighbors->map(function($item) {
+            'neighbors' => $neighbors->map(function ($item) {
                 return [
                     'id' => $item['student']->id,
                     'nisn' => $item['student']->nisn,
@@ -388,7 +388,7 @@ class PrediksiController extends Controller
                 'total_weight' => $weight,
                 'weight_ratio' => $weightRatio,
             ]);
-            
+
             Log::info("Rasio bobot untuk kelas", [
                 'status' => $status,
                 'total_weight' => $weight,
@@ -408,7 +408,7 @@ class PrediksiController extends Controller
         Log::info("11. Mengecek Aturan Kelulusan");
         $fitur = $testStudent->studentValues->pluck('value', 'key')->toArray();
         Log::info("Fitur untuk pengecekan aturan", ['fitur' => $fitur]);
-        
+
         $ruleBasedStatus = $this->tentukanStatusKelulusan($fitur);
         Log::info("Hasil pengecekan aturan kelulusan", ['ruleBasedStatus' => $ruleBasedStatus]);
 
@@ -435,170 +435,170 @@ class PrediksiController extends Controller
     }
 
     // ==================== FUNGSI PENDUKUNG ====================
-private function normalize($value, $min, $max)
-{
+    private function normalize($value, $min, $max)
+    {
         if ($value === null) {
             Log::info("Nilai null, return 0");
             return 0;
         }
 
-    $value = floatval($value);
-    $min = floatval($min);
-    $max = floatval($max);
+        $value = floatval($value);
+        $min = floatval($min);
+        $max = floatval($max);
 
-    if ($max - $min == 0) {
-        Log::info("Min dan max sama, return 0 untuk menghindari pembagian nol", [
-            'value' => $value,
-            'min' => $min,
-            'max' => $max
-        ]);
-        return 0; // Hindari pembagian dengan nol
-    }
-
-    // Normalisasi dan batasi hasil antara 0 dan 1
-    $normalized = ($value - $min) / ($max - $min);
-    $result = max(0, min(1, $normalized));
-    
-    Log::info("Normalisasi nilai", [
-        'original_value' => $value,
-        'min' => $min,
-        'max' => $max,
-        'normalized' => $normalized,
-        'final_result' => $result
-    ]);
-    
-    return $result;
-}
-
-private function processAndNormalizeData($studentValues, $minMax)
-{
-    Log::info("=== MULAI PROSES NORMALISASI DATA ===");
-    Log::info("Data yang akan dinormalisasi", ['studentValues' => $studentValues->toArray()]);
-    Log::info("MinMax yang digunakan", ['minMax' => $minMax]);
-    
-    $normalizedValues = [];
-
-    foreach ($studentValues as $key => $value) {
-        $val = $this->convertToNumeric($value);
-
-        if (isset($minMax[$key])) {
-            $min = $minMax[$key]['min'];
-            $max = $minMax[$key]['max'];
-            $normalizedValues[$key] = $this->normalize($val, $min, $max);
-            
-            Log::info("Normalisasi fitur", [
-                'feature' => $key,
-                'original_value' => $value,
-                'numeric_value' => $val,
+        if ($max - $min == 0) {
+            Log::info("Min dan max sama, return 0 untuk menghindari pembagian nol", [
+                'value' => $value,
                 'min' => $min,
-                'max' => $max,
-                'normalized_value' => $normalizedValues[$key]
+                'max' => $max
             ]);
-        } else {
-                // Jika min/max tidak ditemukan, gunakan bobot default
-            $normalizedValues[$key] = 0;
-            Log::warning("Feature {$key} tidak memiliki min/max values, menggunakan 0");
+            return 0; // Hindari pembagian dengan nol
         }
+
+        // Normalisasi dan batasi hasil antara 0 dan 1
+        $normalized = ($value - $min) / ($max - $min);
+        $result = max(0, min(1, $normalized));
+
+        Log::info("Normalisasi nilai", [
+            'original_value' => $value,
+            'min' => $min,
+            'max' => $max,
+            'normalized' => $normalized,
+            'final_result' => $result
+        ]);
+
+        return $result;
     }
 
-    Log::info("=== SELESAI PROSES NORMALISASI DATA ===", ['normalizedValues' => $normalizedValues]);
-    return $normalizedValues;
-}
+    private function processAndNormalizeData($studentValues, $minMax)
+    {
+        Log::info("=== MULAI PROSES NORMALISASI DATA ===");
+        Log::info("Data yang akan dinormalisasi", ['studentValues' => $studentValues->toArray()]);
+        Log::info("MinMax yang digunakan", ['minMax' => $minMax]);
 
-private function getMinMaxPerFeatureFromTraining()
-{
-    Log::info("=== MULAI MENCARI MINMAX DARI DATA TRAINING ===");
-    
-    // Ambil semua atribut dari data siswa uji
-    $testStudent = Student::where('jenis_data', 'testing')
-        ->latest()
-        ->first();
+        $normalizedValues = [];
 
-    if (!$testStudent) {
-        Log::error('Tidak ada data siswa uji yang ditemukan.');
-        return [];
-    }
+        foreach ($studentValues as $key => $value) {
+            $val = $this->convertToNumeric($value);
 
-    Log::info("Siswa uji yang digunakan untuk referensi", [
-        'student_id' => $testStudent->id,
-        'nisn' => $testStudent->nisn,
-        'name' => $testStudent->name
-    ]);
+            if (isset($minMax[$key])) {
+                $min = $minMax[$key]['min'];
+                $max = $minMax[$key]['max'];
+                $normalizedValues[$key] = $this->normalize($val, $min, $max);
 
-    $testAttributes = $testStudent->studentValues->pluck('key')->unique()->toArray();
-    Log::info("Atribut yang akan dicari minmax", ['attributes' => $testAttributes]);
-    
-    $minMax = [];
-
-    // Ambil data latih
-    $dataLatih = Student::where('jenis_data', 'training')
-        ->whereNotNull('true_status')
-        ->with('studentValues')
-        ->get();
-
-    Log::info("Data latih yang ditemukan", [
-        'training_count' => $dataLatih->count()
-    ]);
-
-    foreach ($testAttributes as $attribute) {
-        Log::info("Mencari minmax untuk atribut", ['attribute' => $attribute]);
-        
-        if ($dataLatih->isNotEmpty()) {
-            // Jika ada data latih, gunakan min dan max dari data latih
-            $values = $dataLatih->flatMap(function ($student) use ($attribute) {
-                return $student->studentValues
-                    ->where('key', $attribute)
-                    ->pluck('value')
-                    ->map(function ($value) {
-                        return $this->convertToNumeric($value);
-                    });
-            })->filter()->values();
-
-            if ($values->isNotEmpty()) {
-                $min = $values->min();
-                $max = $values->max();
-                $minMax[$attribute] = [
-                    'min' => $min,
-                    'max' => $max
-                ];
-                
-                Log::info("Minmax dari data latih", [
-                    'attribute' => $attribute,
+                Log::info("Normalisasi fitur", [
+                    'feature' => $key,
+                    'original_value' => $value,
+                    'numeric_value' => $val,
                     'min' => $min,
                     'max' => $max,
-                    'values_count' => $values->count()
+                    'normalized_value' => $normalizedValues[$key]
                 ]);
             } else {
-                Log::warning("Tidak ada nilai untuk atribut dalam data latih", ['attribute' => $attribute]);
+                // Jika min/max tidak ditemukan, gunakan bobot default
+                $normalizedValues[$key] = 0;
+                Log::warning("Feature {$key} tidak memiliki min/max values, menggunakan 0");
             }
-        } else {
-            // Jika tidak ada data latih, gunakan nilai default berdasarkan atribut
-            Log::info("Tidak ada data latih, menggunakan nilai default untuk atribut", ['attribute' => $attribute]);
-            
-            switch ($attribute) {
-                case 'rata_rata':
-                case 'usp':
-                    $minMax[$attribute] = ['min' => 0, 'max' => 100];
-                    break;
-                case 'sikap':
-                case 'kerajinan':
-                case 'kerapian':
-                    $minMax[$attribute] = ['min' => 0, 'max' => 1];
-                    break;
-                default:
-                    $minMax[$attribute] = ['min' => 0, 'max' => 100];
-            }
-            
-            Log::info("Nilai default yang digunakan", [
-                'attribute' => $attribute,
-                'minmax' => $minMax[$attribute]
-            ]);
         }
+
+        Log::info("=== SELESAI PROSES NORMALISASI DATA ===", ['normalizedValues' => $normalizedValues]);
+        return $normalizedValues;
     }
 
-    Log::info("=== SELESAI MENCARI MINMAX DARI DATA TRAINING ===", ['minMax' => $minMax]);
-    return $minMax;
-}
+    private function getMinMaxPerFeatureFromTraining()
+    {
+        Log::info("=== MULAI MENCARI MINMAX DARI DATA TRAINING ===");
+
+        // Ambil semua atribut dari data siswa uji
+        $testStudent = Student::where('jenis_data', 'testing')
+            ->latest()
+            ->first();
+
+        if (!$testStudent) {
+            Log::error('Tidak ada data siswa uji yang ditemukan.');
+            return [];
+        }
+
+        Log::info("Siswa uji yang digunakan untuk referensi", [
+            'student_id' => $testStudent->id,
+            'nisn' => $testStudent->nisn,
+            'name' => $testStudent->name
+        ]);
+
+        $testAttributes = $testStudent->studentValues->pluck('key')->unique()->toArray();
+        Log::info("Atribut yang akan dicari minmax", ['attributes' => $testAttributes]);
+
+        $minMax = [];
+
+        // Ambil data latih
+        $dataLatih = Student::where('jenis_data', 'training')
+            ->whereNotNull('true_status')
+            ->with('studentValues')
+            ->get();
+
+        Log::info("Data latih yang ditemukan", [
+            'training_count' => $dataLatih->count()
+        ]);
+
+        foreach ($testAttributes as $attribute) {
+            Log::info("Mencari minmax untuk atribut", ['attribute' => $attribute]);
+
+            if ($dataLatih->isNotEmpty()) {
+                // Jika ada data latih, gunakan min dan max dari data latih
+                $values = $dataLatih->flatMap(function ($student) use ($attribute) {
+                    return $student->studentValues
+                        ->where('key', $attribute)
+                        ->pluck('value')
+                        ->map(function ($value) {
+                            return $this->convertToNumeric($value);
+                        });
+                })->filter()->values();
+
+                if ($values->isNotEmpty()) {
+                    $min = $values->min();
+                    $max = $values->max();
+                    $minMax[$attribute] = [
+                        'min' => $min,
+                        'max' => $max
+                    ];
+
+                    Log::info("Minmax dari data latih", [
+                        'attribute' => $attribute,
+                        'min' => $min,
+                        'max' => $max,
+                        'values_count' => $values->count()
+                    ]);
+                } else {
+                    Log::warning("Tidak ada nilai untuk atribut dalam data latih", ['attribute' => $attribute]);
+                }
+            } else {
+                // Jika tidak ada data latih, gunakan nilai default berdasarkan atribut
+                Log::info("Tidak ada data latih, menggunakan nilai default untuk atribut", ['attribute' => $attribute]);
+
+                switch ($attribute) {
+                    case 'rata_rata':
+                    case 'usp':
+                        $minMax[$attribute] = ['min' => 0, 'max' => 100];
+                        break;
+                    case 'sikap':
+                    case 'kerajinan':
+                    case 'kerapian':
+                        $minMax[$attribute] = ['min' => 0, 'max' => 1];
+                        break;
+                    default:
+                        $minMax[$attribute] = ['min' => 0, 'max' => 100];
+                }
+
+                Log::info("Nilai default yang digunakan", [
+                    'attribute' => $attribute,
+                    'minmax' => $minMax[$attribute]
+                ]);
+            }
+        }
+
+        Log::info("=== SELESAI MENCARI MINMAX DARI DATA TRAINING ===", ['minMax' => $minMax]);
+        return $minMax;
+    }
 
     private function calculateFuzzyMembership($distance, $m = self::FUZZY_STRENGTH)
     {
@@ -607,14 +607,14 @@ private function getMinMaxPerFeatureFromTraining()
         // Dimana d adalah jarak Euclidean dan ε adalah nilai kecil untuk menghindari pembagian nol
         $adjustedDistance = $distance + self::EPSILON;
         $membership = 1 / (1 + pow($adjustedDistance, 2));
-        
+
         Log::info("Perhitungan Fuzzy Membership", [
             'distance' => $distance,
             'epsilon' => self::EPSILON,
             'adjusted_distance' => $adjustedDistance,
             'membership' => $membership
         ]);
-        
+
         return $membership;
     }
 
@@ -623,12 +623,12 @@ private function getMinMaxPerFeatureFromTraining()
         // Perhitungan bobot fuzzy menggunakan Euclidean distance
         // w = 1 / (1 + ε + d²)
         $weight = $this->calculateFuzzyMembership($distance, $m);
-        
+
         Log::info("Perhitungan Fuzzy Weight", [
             'distance' => $distance,
             'fuzzy_weight' => $weight
         ]);
-        
+
         return $weight;
     }
 
@@ -637,7 +637,7 @@ private function getMinMaxPerFeatureFromTraining()
         Log::info("=== MULAI PERHITUNGAN JARAK BERBOBOT ===");
         Log::info("Data test", ['testValues' => $testValues]);
         Log::info("Data training", ['trainValues' => $trainValues]);
-        
+
         $sum = 0;
         $totalWeight = 0;
         $featureDetails = [];
@@ -646,15 +646,15 @@ private function getMinMaxPerFeatureFromTraining()
             if (isset($trainValues[$key])) {
                 $testVal = $this->convertToNumeric($value);
                 $trainVal = $this->convertToNumeric($trainValues[$key]);
-                
+
                 // Pembobotan fitur sesuai kaidah
                 $weight = self::FEATURE_WEIGHTS[$key] ?? 0.1;
                 $squaredDiff = pow($testVal - $trainVal, 2);
                 $weightedDiff = $weight * $squaredDiff;
-                
+
                 $sum += $weightedDiff;
                 $totalWeight += $weight;
-                
+
                 $featureDetails[] = [
                     'feature' => $key,
                     'test_value' => $testVal,
@@ -664,7 +664,7 @@ private function getMinMaxPerFeatureFromTraining()
                     'feature_weight' => $weight,
                     'weighted_diff' => $weightedDiff
                 ];
-                
+
                 Log::info("Perhitungan fitur", [
                     'feature' => $key,
                     'test_value' => $testVal,
@@ -679,21 +679,21 @@ private function getMinMaxPerFeatureFromTraining()
 
         // Normalisasi jarak dengan total bobot
         $finalDistance = $totalWeight > 0 ? sqrt($sum / $totalWeight) : 0;
-        
+
         Log::info("=== HASIL PERHITUNGAN JARAK BERBOBOT ===", [
             'sum' => $sum,
             'total_weight' => $totalWeight,
             'final_distance' => $finalDistance,
             'feature_details' => $featureDetails
         ]);
-        
+
         return $finalDistance;
     }
 
     private function convertToNumeric($value)
     {
         $originalValue = $value;
-        
+
         $map = [
             'baik' => 1,
             'cukup' => 0.5,
@@ -711,21 +711,21 @@ private function getMinMaxPerFeatureFromTraining()
 
         $value = strtolower(trim($value));
         $result = $map[$value] ?? 0;
-        
+
         Log::info("Konversi nilai non-numerik", [
             'original_value' => $originalValue,
             'cleaned_value' => $value,
             'converted_value' => $result,
             'mapping_used' => $map[$value] ?? 'default (0)'
         ]);
-        
+
         return $result;
     }
 
     public function uploadExcelDanPrediksi(Request $request)
     {
         Log::info("=== MULAI PROSES UPLOAD EXCEL DAN PREDIKSI ===");
-        
+
         try {
             if (!$request->hasFile('excel_file')) {
                 Log::error("File tidak ditemukan pada request");
@@ -787,7 +787,7 @@ private function getMinMaxPerFeatureFromTraining()
             // Validate required headers
             $requiredHeaders = ['nama', 'nisn', 'semester_1', 'semester_2', 'semester_3', 'semester_4', 'semester_5', 'semester_6', 'usp', 'sikap', 'kerapian', 'kerajinan'];
             $missingHeaders = array_diff($requiredHeaders, array_map('strtolower', $headers));
-            
+
             if (!empty($missingHeaders)) {
                 Log::error("Header yang diperlukan tidak ditemukan", ['missing_headers' => $missingHeaders]);
                 return back()->with('error', 'Format Excel tidak sesuai. Header yang diperlukan: ' . implode(', ', $missingHeaders));
@@ -800,7 +800,7 @@ private function getMinMaxPerFeatureFromTraining()
                     $formatted[strtolower(trim($header))] = trim($dataRow[$i] ?? '');
                 }
                 $formattedRows[] = $formatted;
-                
+
                 Log::info("Data baris " . ($index + 1), ['formatted_data' => $formatted]);
             }
 
@@ -861,7 +861,7 @@ private function getMinMaxPerFeatureFromTraining()
                             'key' => trim($key),
                             'value' => trim($value),
                         ]);
-                        
+
                         Log::info("Nilai siswa disimpan", [
                             'student_id' => $student->id,
                             'key' => trim($key),
@@ -901,7 +901,7 @@ private function getMinMaxPerFeatureFromTraining()
                     ->orderBy('distance')
                     ->limit($k)
                     ->get()
-                    ->map(function($item) {
+                    ->map(function ($item) {
                         return [
                             'nisn' => $item->trainingStudent->nisn ?? '-',
                             'nama' => $item->trainingStudent->name ?? '-',
