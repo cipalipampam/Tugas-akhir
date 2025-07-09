@@ -35,11 +35,13 @@ class DashboardController extends Controller
         // Get semester trend data
         $semesterTrendData = $this->getSemesterTrendData();
         
-        // Calculate average values per semester
+        // Calculate average values per semester (hanya untuk siswa testing)
+        $testingStudentIds = Student::where('jenis_data', 'testing')->pluck('id')->toArray();
         $semesterAverages = [];
         for ($i = 1; $i <= 6; $i++) {
             $semesterAverages["Semester $i"] = StudentValue::where('key', "semester_$i")
                 ->where('value', '!=', '')
+                ->whereIn('student_id', $testingStudentIds)
                 ->avg(DB::raw('CAST(value AS DECIMAL(10,2))')) ?? 0;
         }
         
@@ -85,7 +87,11 @@ class DashboardController extends Controller
     }
     
     private function getStudentIdsByStatus($status){
+        // Ambil hanya student_id yang jenis_data-nya 'testing'
         return Prediction::where('predicted_status', $status)
+            ->whereHas('student', function($query) {
+                $query->where('jenis_data', 'testing');
+            })
             ->pluck('test_student_id')
             ->toArray();
     }

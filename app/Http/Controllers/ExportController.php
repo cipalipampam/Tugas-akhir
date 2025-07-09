@@ -34,7 +34,7 @@ class ExportController extends Controller
             // Validate the request
             $request->validate([
                 'fileFormat' => 'required|in:pdf,csv',
-                'dataType' => 'required|in:all,passed,failed,prediction',
+                'dataType' => 'required|in:all,passed,failed,conditional_passed,prediction',
                 'title' => 'nullable|string|max:255',
                 // 'schoolYear' => 'nullable|string|max:20',
                 'tahunAngkatan' => 'nullable|string|max:4',
@@ -44,6 +44,10 @@ class ExportController extends Controller
             $data = $this->getDataByType($request->dataType, $request->tahunAngkatan);
             
             if ($data->isEmpty()) {
+                // Jika request AJAX, balas JSON error
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['error' => 'Data tidak ditemukan untuk konfigurasi yang dipilih.'], 422);
+                }
                 return back()->with('error', 'Tidak ada data yang dapat diekspor');
             }
             
@@ -51,6 +55,9 @@ class ExportController extends Controller
             $includedColumns = $this->getIncludedColumns($request);
             
             if (empty($includedColumns)) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['error' => 'Pilih minimal satu kolom untuk diekspor'], 422);
+                }
                 return back()->with('error', 'Pilih minimal satu kolom untuk diekspor');
             }
             
@@ -61,9 +68,15 @@ class ExportController extends Controller
                 case 'csv':
                     return $this->exportCsv($data, $includedColumns, $request->title, $request->tahunAngkatan);
                 default:
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['error' => 'Format tidak valid'], 422);
+                    }
                     return back()->with('error', 'Format tidak valid');
             }
         } catch (Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['error' => 'Terjadi kesalahan saat mengekspor data: ' . $e->getMessage()], 500);
+            }
             return back()->with('error', 'Terjadi kesalahan saat mengekspor data: ' . $e->getMessage());
         }
     }
@@ -71,7 +84,8 @@ class ExportController extends Controller
     private function getDataByType($type, $tahunAngkatan = null)
     {
         try {
-            $query = Student::with('studentValues');
+            $query = Student::with(['studentValues', 'prediction'])
+                ->where('jenis_data', 'testing');
             
             // Apply year filter if specified
             if (!empty($tahunAngkatan)) {
@@ -82,29 +96,23 @@ class ExportController extends Controller
                 case 'all':
                     return $query->get();
                 case 'passed':
-                    return $query->where(function($q) {
-                        $q->where('true_status', 'lulus')
-                          ->orWhereHas('predictions', function ($query) {
-                              $query->where('predicted_status', 'lulus');
-                          });
+                    // Hanya testing dengan predicted_status lulus
+                    return $query->whereHas('prediction', function($q) {
+                        $q->where('predicted_status', 'lulus');
+                    })->get();
+                case 'conditional_passed':
+                    // Hanya testing dengan predicted_status lulus bersyarat
+                    return $query->whereHas('prediction', function($q) {
+                        $q->where('predicted_status', 'lulus bersyarat');
                     })->get();
                 case 'failed':
-                    return $query->where(function($q) {
-                        $q->where('true_status', 'tidak lulus')
-                          ->orWhereHas('predictions', function ($query) {
-                              $query->where('predicted_status', 'tidak lulus');
-                          });
+                    // Hanya testing dengan predicted_status tidak lulus
+                    return $query->whereHas('prediction', function($q) {
+                        $q->where('predicted_status', 'tidak lulus');
                     })->get();
                 case 'prediction':
-                    return $query->with(['predictions' => function ($query) {
-                            $query->latest();
-                        }])
-                        ->whereHas('predictions')
-                        ->get()
-                        ->map(function ($student) {
-                            $student->predicted_status = $student->predictions->first()->predicted_status ?? null;
-                            return $student;
-                        });
+                    // Semua testing yang punya prediksi
+                    return $query->whereHas('prediction')->get();
                 default:
                     return collect([]);
             }
@@ -115,40 +123,8 @@ class ExportController extends Controller
     
     private function getIncludedColumns(Request $request)
     {
-        $columns = [];
-        
-        if ($request->has('includeNISN')) {
-            $columns[] = 'nisn';
-        }
-        
-        if ($request->has('includeName')) {
-            $columns[] = 'name';
-        }
-        
-        if ($request->has('includeGrades')) {
-            $columns = array_merge($columns, [
-                'semester_1',
-                'semester_2',
-                'semester_3',
-                'semester_4',
-                'semester_5',
-                'semester_6',
-                'usp'
-            ]);
-        }
-        
-        if ($request->has('includeNonAcademic')) {
-            $columns = array_merge($columns, [
-                'sikap',
-                'kerapian',
-                'kerajinan'
-            ]);
-        }
-        
-        if ($request->has('includeStatus')) {
-            $columns[] = 'status';
-        }
-        
+        // Ambil array columns[] dari request
+        $columns = $request->input('columns', []);
         return $columns;
     }
     
@@ -223,24 +199,31 @@ class ExportController extends Controller
     {
         try {
             $formattedData = [];
-            
             foreach ($students as $student) {
-                $item = [
-                    'nisn' => $student->nisn,
-                    'name' => $student->name,
-                    'status' => $student->true_status ?? ($student->predicted_status ?? 'Belum ada status')
-                ];
-                
-                // Add student values
-                if ($student->studentValues) {
-                    foreach ($student->studentValues as $value) {
-                        $item[$value->key] = $value->value;
+                $item = [];
+                foreach ($columns as $col) {
+                    if ($col === 'nisn') {
+                        $item['nisn'] = $student->nisn;
+                    } elseif ($col === 'name') {
+                        $item['name'] = $student->name;
+                    } elseif ($col === 'status') {
+                        $item['status'] = $student->prediction->predicted_status ?? 'Belum ada status';
+                    } else {
+                        // Cek di studentValues
+                        $value = null;
+                        if ($student->studentValues) {
+                            foreach ($student->studentValues as $sv) {
+                                if ($sv->key === $col) {
+                                    $value = $sv->value;
+                                    break;
+                                }
+                            }
+                        }
+                        $item[$col] = $value;
                     }
                 }
-                
                 $formattedData[] = $item;
             }
-            
             return $formattedData;
         } catch (Exception $e) {
             throw new Exception('Gagal memformat data: ' . $e->getMessage());

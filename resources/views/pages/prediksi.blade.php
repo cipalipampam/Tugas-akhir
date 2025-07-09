@@ -184,8 +184,8 @@
                                                     <select name="data[sikap]" class="form-select">
                                                         <option value="">Pilih</option>
                                                         <option value="baik">Baik</option>
-                                                        <option value="cukup baik">Cukup Baik</option>
-                                                        <option value="kurang baik">Kurang Baik</option>
+                                                        <option value="cukup baik">Cukup</option>
+                                                        <option value="kurang baik">Kurang</option>
                                                     </select>
                                                 </div>
                                                 <div class="form-group mb-3">
@@ -231,7 +231,19 @@
                                     </button>
                                 </div>
                             </form>
-                                @if(isset($manualPrediction))
+                                @if(isset($manualPrediction) && isset($studentValues))
+                                    @php
+                                        // Ambil nilai rata-rata akademik (semester_1 sampai semester_6)
+                                        $akademik = collect(range(1,6))->map(function($i) use ($studentValues) {
+                                            return isset($studentValues['semester_'.$i]) ? floatval($studentValues['semester_'.$i]) : null;
+                                        })->filter()->avg();
+                                        // Ambil nilai non-akademik (kerapian, kerajinan, sikap) dan konversi ke 0, 0.5, 1
+                                        $nonAkademikMap = ['kurang baik' => 0, 'cukup baik' => 0.5, 'baik' => 1];
+                                        $kerapian = isset($studentValues['kerapian']) ? $nonAkademikMap[strtolower($studentValues['kerapian'])] ?? null : null;
+                                        $kerajinan = isset($studentValues['kerajinan']) ? $nonAkademikMap[strtolower($studentValues['kerajinan'])] ?? null : null;
+                                        $sikap = isset($studentValues['sikap']) ? $nonAkademikMap[strtolower($studentValues['sikap'])] ?? null : null;
+                                        $nonAkademik = collect([$kerapian, $kerajinan, $sikap])->filter(function($v){return $v!==null;})->avg();
+                                    @endphp
                                     <div class="card shadow-sm mt-4">
                                         <div class="card-header bg-light p-3 d-flex justify-content-between align-items-center">
                                             <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Hasil Prediksi (Manual)</h6>
@@ -322,6 +334,29 @@
                                                         </div>
                                                         <div class="card-body">
                                                             <canvas id="fuzzyCurveChart" height="120"></canvas>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Tambahkan dua grafik fuzzy di bawahnya -->
+                                            <div class="row mt-4">
+                                                <div class="col-md-6 mb-4">
+                                                    <div class="card border shadow-sm">
+                                                        <div class="card-header bg-light p-3">
+                                                            <h6 class="mb-0 text-primary"><i class="fas fa-chart-area me-2"></i>Kurva Fuzzy Akademik</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <canvas id="fuzzyAcademicChart" height="220"></canvas>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 mb-4">
+                                                    <div class="card border shadow-sm">
+                                                        <div class="card-header bg-light p-3">
+                                                            <h6 class="mb-0 text-primary"><i class="fas fa-chart-area me-2"></i>Kurva Fuzzy Non-Akademik</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <canvas id="fuzzyNonAcademicChart" height="220"></canvas>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -587,8 +622,32 @@
             });
         </script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        @if(isset($manualPrediction) && isset($studentValues))
+            @php
+                // Titik-titik akademik: semester 1-6
+                $akademikPoints = collect(range(1,6))->map(function($i) use ($studentValues) {
+                    return isset($studentValues['semester_'.$i]) ? [
+                        'x' => floatval($studentValues['semester_'.$i]),
+                        'y' => null,
+                        'label' => 'Semester '.$i
+                    ] : null;
+                })->filter()->values();
+                // Titik-titik non-akademik: kerapian, kerajinan, sikap
+                $nonAkademikMap = ['kurang baik' => 0, 'cukup baik' => 0.5, 'baik' => 1];
+                $nonAkademikAspek = [
+                    'Kerapian' => isset($studentValues['kerapian']) ? $studentValues['kerapian'] : null,
+                    'Kerajinan' => isset($studentValues['kerajinan']) ? $studentValues['kerajinan'] : null,
+                    'Sikap' => isset($studentValues['sikap']) ? $studentValues['sikap'] : null,
+                ];
+                $nonAkademikPoints = collect($nonAkademikAspek)->filter(function($v){return $v!==null;})->map(function($v,$k) use ($nonAkademikMap){
+                    $x = $nonAkademikMap[strtolower($v)] ?? null;
+                    return $x !== null ? ['x'=>$x,'y'=>null,'label'=>$k.' ('.$v.')'] : null;
+                })->filter()->values();
+            @endphp
+        @endif
         @if(isset($manualPrediction['ratios']) && count($manualPrediction['ratios']) > 0)
         <script>
+            // Kurva Derajat Keanggotaan Fuzzy (sudah ada)
             const fuzzyLabels = @json(collect($manualPrediction['ratios'])->pluck('class'));
             const fuzzyValues = @json(collect($manualPrediction['ratios'])->pluck('weight_ratio'));
             const ctxFuzzy = document.getElementById('fuzzyCurveChart').getContext('2d');
@@ -608,6 +667,145 @@
                 options: {
                     scales: {
                         y: { beginAtZero: true, max: 1 }
+                    }
+                }
+            });
+
+            // Titik indikator input siswa (banyak titik)
+            @php
+                $akademikColors = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4'];
+                $nonAkademikColors = ['#008080','#f032e6','#fabebe'];
+            @endphp
+            const indikatorAkademik = [
+                @foreach($akademikPoints as $i => $pt)
+                    {x: {{ $pt['x'] }}, y: 0, label: '{{ $pt['label'] }}', backgroundColor: '{{ $akademikColors[$i%6] }}'},
+                @endforeach
+            ];
+            const indikatorNonAkademik = [
+                @foreach($nonAkademikPoints as $i => $pt)
+                    {x: {{ $pt['x'] }}, y: 0, label: '{{ $pt['label'] }}', backgroundColor: '{{ $nonAkademikColors[$i%3] }}'},
+                @endforeach
+            ];
+            // Kurva Fuzzy Akademik
+            const xAkademik = Array.from({length: 101}, (_, i) => i); // 0-100
+            const rendah = xAkademik.map(x => x <= 60 ? 1 : (x > 60 && x < 70 ? (70-x)/10 : 0));
+            const sedang = xAkademik.map(x => x < 60 ? 0 : (x >= 60 && x < 70 ? (x-60)/10 : (x >= 70 && x < 80 ? (80-x)/10 : 0)));
+            const tinggi = xAkademik.map(x => x < 70 ? 0 : (x >= 70 && x < 80 ? (x-70)/10 : 1));
+            // Cari y untuk titik indikator
+            indikatorAkademik.forEach(function(pt){
+                const x = pt.x;
+                pt.y = Math.max(
+                    x <= 60 ? 1 : (x > 60 && x < 70 ? (70-x)/10 : 0),
+                    x < 60 ? 0 : (x >= 60 && x < 70 ? (x-60)/10 : (x >= 70 && x < 80 ? (80-x)/10 : 0)),
+                    x < 70 ? 0 : (x >= 70 && x < 80 ? (x-70)/10 : 1)
+                );
+            });
+            new Chart(document.getElementById('fuzzyAcademicChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: xAkademik,
+                    datasets: [
+                        {label: 'Rendah', data: rendah, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Sedang', data: sedang, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Tinggi', data: tinggi, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        // Titik indikator
+                        {
+                            label: 'Nilai Siswa',
+                            data: indikatorAkademik,
+                            type: 'scatter',
+                            showLine: false,
+                            pointBackgroundColor: indikatorAkademik.map(pt=>pt.backgroundColor),
+                            pointBorderColor: 'yellow',
+                            pointRadius: 7,
+                            pointStyle: 'circle',
+                            borderWidth: 2,
+                            fill: false,
+                            order: 99,
+                            datalabels: {
+                                align: 'top',
+                                anchor: 'end',
+                                formatter: function(value, ctx) { return value.label; }
+                            }
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {display: true, position: 'top'},
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.dataset.label==='Nilai Siswa') return context.raw.label+': x='+context.raw.x+', μ(x)='+context.raw.y.toFixed(2);
+                                    return context.dataset.label+': μ('+context.label+') = '+context.formattedValue;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {title: {display: true, text: 'Nilai Akademik (0-100)'}, min: 0, max: 100, ticks: {stepSize: 10}},
+                        y: {title: {display: true, text: 'μ(x)'}, min: 0, max: 1}
+                    }
+                }
+            });
+            // Kurva Fuzzy Non-Akademik
+            const xNonAkademik = Array.from({length: 101}, (_, i) => i/100); // 0-1
+            const kurang = xNonAkademik.map(x => x <= 0.5 ? 1 - (x/0.5) : 0);
+            const cukup = xNonAkademik.map(x => x <= 0.5 ? x/0.5 : (x <= 1 ? (1-x)/0.5 : 0));
+            const baik = xNonAkademik.map(x => x < 0.5 ? 0 : (x >= 0.5 && x < 1 ? (x-0.5)/0.5 : 1));
+            indikatorNonAkademik.forEach(function(pt){
+                const x = pt.x;
+                pt.y = Math.max(
+                    x <= 0.5 ? 1 - (x/0.5) : 0,
+                    x <= 0.5 ? x/0.5 : (x <= 1 ? (1-x)/0.5 : 0),
+                    x < 0.5 ? 0 : (x >= 0.5 && x < 1 ? (x-0.5)/0.5 : 1)
+                );
+            });
+            new Chart(document.getElementById('fuzzyNonAcademicChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: xNonAkademik,
+                    datasets: [
+                        {label: 'Kurang', data: kurang, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Cukup', data: cukup, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Baik', data: baik, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        // Titik indikator
+                        {
+                            label: 'Nilai Siswa',
+                            data: indikatorNonAkademik,
+                            type: 'scatter',
+                            showLine: false,
+                            pointBackgroundColor: indikatorNonAkademik.map(pt=>pt.backgroundColor),
+                            pointBorderColor: 'yellow',
+                            pointRadius: 7,
+                            pointStyle: 'circle',
+                            borderWidth: 2,
+                            fill: false,
+                            order: 99,
+                            datalabels: {
+                                align: 'top',
+                                anchor: 'end',
+                                formatter: function(value, ctx) { return value.label; }
+                            }
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {display: true, position: 'top'},
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.dataset.label==='Nilai Siswa') return context.raw.label+': x='+context.raw.x+', μ(x)='+context.raw.y.toFixed(2);
+                                    return context.dataset.label+': μ('+context.label+') = '+context.formattedValue;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {title: {display: true, text: 'Nilai Non-Akademik (0-1)'}, min: 0, max: 1, ticks: {stepSize: 0.1}},
+                        y: {title: {display: true, text: 'μ(x)'}, min: 0, max: 1}
                     }
                 }
             });

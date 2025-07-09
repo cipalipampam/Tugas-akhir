@@ -178,8 +178,10 @@ class PrediksiController extends Controller
             'neighbors' => $neighbors,
             'ratios' => $ratios
         ];
+        $studentValues = $testStudent->studentValues->pluck('value', 'key')->toArray();
         return view('pages.prediksi', [
             'manualPrediction' => $manualPrediction,
+            'studentValues' => $studentValues,
             'activeInputMethod' => 'manual'
         ])->with('success', 'Prediksi berhasil dilakukan.');
     }

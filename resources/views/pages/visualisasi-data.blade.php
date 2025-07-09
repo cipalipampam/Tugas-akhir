@@ -26,17 +26,18 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <!-- Sembunyikan filter tahun angkatan, tetap ada di form sebagai input hidden -->
+                                    <div class="col-md-4" style="display:none;">
                                         <div class="form-group">
                                             <label class="form-label">Filter Tahun Angkatan</label>
                                             <select name="tahun_angkatan" class="form-select">
-                                                <option value="all" {{ $tahunAngkatanFilter === 'all' ? 'selected' : '' }}>Semua Tahun</option>
+                                                <option value="all" selected>Semua Tahun</option>
                                                 @foreach($availableTahunAngkatan as $tahun)
                                                     <option value="{{ $tahun }}" {{ $tahunAngkatanFilter === $tahun ? 'selected' : '' }}>
                                                         {{ $tahun }}
                                                     </option>
                                                 @endforeach
-                                        </select>
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -80,6 +81,9 @@
             </div>
             
             <!-- Chart Row 1: Pie and Bar Charts -->
+            @if(array_sum($statusCounts) === 0)
+                <div class="alert alert-warning">Tidak ada data untuk filter yang dipilih.</div>
+            @else
             <div class="row mb-4">
                 <!-- Pie Chart - Distribution of Graduation Status -->
                 <div class="col-lg-6 col-md-12 mb-md-0 mb-4">
@@ -89,6 +93,7 @@
                             <p class="text-sm mb-0">
                                 <i class="fa fa-pie-chart text-success me-1"></i>
                                 Persentase hasil prediksi kelulusan siswa
+                                <span data-bs-toggle="tooltip" title="Menampilkan distribusi status kelulusan berdasarkan filter."><i class="fas fa-info-circle"></i></span>
                             </p>
                         </div>
                         <div class="card-body p-3">
@@ -107,6 +112,7 @@
                             <p class="text-sm mb-0">
                                 <i class="fa fa-bar-chart text-info me-1"></i>
                                 Rata-rata nilai berdasarkan kategori
+                                <span data-bs-toggle="tooltip" title="Menampilkan rata-rata nilai akademik dan non-akademik berdasarkan filter."><i class="fas fa-info-circle"></i></span>
                             </p>
                         </div>
                         <div class="card-body p-3">
@@ -128,6 +134,7 @@
                             <p class="text-sm mb-0">
                                 <i class="fa fa-line-chart text-primary me-1"></i>
                                 Perkembangan nilai siswa dari semester ke semester
+                                <span data-bs-toggle="tooltip" title="Menampilkan tren rata-rata nilai per semester berdasarkan filter."><i class="fas fa-info-circle"></i></span>
                             </p>
                         </div>
                         <div class="card-body p-3">
@@ -138,24 +145,177 @@
                     </div>
                 </div>
                 
-                <!-- Heatmap - Correlation Between Values -->
+                <!-- Card Histogram Sebaran Nilai -->
                 <div class="col-lg-6 col-md-12 mb-md-0 mb-4">
                     <div class="card z-index-2 h-100">
                         <div class="card-header pb-0">
-                            <h6>Korelasi Antar Nilai</h6>
+                            <h6>Histogram Sebaran Nilai</h6>
                             <p class="text-sm mb-0">
-                                <i class="fa fa-th text-warning me-1"></i>
-                                Hubungan antara nilai-nilai akademik dan non-akademik
+                                <i class="fa fa-chart-bar text-primary me-1"></i>
+                                Distribusi nilai USP, rata-rata semester, dan non-akademik berdasarkan filter.
                             </p>
                         </div>
                         <div class="card-body p-3">
                             <div class="chart">
-                                <canvas id="heatmap-chart" class="chart-canvas" height="300"></canvas>
+                                <canvas id="histogram-chart" class="chart-canvas" height="300"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            @endif
+            <!-- Tabel Data Siswa Interaktif -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light p-3 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-table me-2"></i>Tabel Data Siswa (Interaktif)</h6>
+                        </div>
+                        <div class="card-body">
+                            @if(isset($studentTableData) && count($studentTableData) > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover" id="studentTable">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th>Nama</th>
+                                                <th>NISN</th>
+                                                <th>Tahun Angkatan</th>
+                                                <th>Semester 1</th>
+                                                <th>Semester 2</th>
+                                                <th>Semester 3</th>
+                                                <th>Semester 4</th>
+                                                <th>Semester 5</th>
+                                                <th>Semester 6</th>
+                                                <th>USP</th>
+                                                <th>Sikap</th>
+                                                <th>Kerapian</th>
+                                                <th>Kerajinan</th>
+                                                <th>Status Prediksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($studentTableData as $row)
+                                                <tr>
+                                                    <td>{{ $row['nama'] }}</td>
+                                                    <td>{{ $row['nisn'] }}</td>
+                                                    <td>{{ $row['tahun_angkatan'] }}</td>
+                                                    <td>{{ $row['semester_1'] ?? '-' }}</td>
+                                                    <td>{{ $row['semester_2'] ?? '-' }}</td>
+                                                    <td>{{ $row['semester_3'] ?? '-' }}</td>
+                                                    <td>{{ $row['semester_4'] ?? '-' }}</td>
+                                                    <td>{{ $row['semester_5'] ?? '-' }}</td>
+                                                    <td>{{ $row['semester_6'] ?? '-' }}</td>
+                                                    <td>{{ $row['usp'] ?? '-' }}</td>
+                                                    <td>{{ $row['sikap'] ?? '-' }}</td>
+                                                    <td>{{ $row['kerapian'] ?? '-' }}</td>
+                                                    <td>{{ $row['kerajinan'] ?? '-' }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ $row['status_prediksi'] == 'lulus' ? 'success' : ($row['status_prediksi'] == 'lulus bersyarat' ? 'warning' : 'danger') }}">
+                                                            {{ ucwords($row['status_prediksi']) }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="alert alert-warning mb-0">Tidak ada data siswa untuk filter ini.</div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @push('css')
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+            <style>
+                /* Perbesar search box dan rapikan */
+                .dataTables_filter label {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .dataTables_filter input[type="search"] {
+                    width: 300px;
+                    max-width: 100%;
+                    margin-left: 0.5rem;
+                    border-radius: 0.5rem;
+                    border: 1px solid #ced4da;
+                    padding: 0.5rem 1rem;
+                    font-size: 1rem;
+                    background: #f8f9fa;
+                }
+                /* Pagination modern look & Bootstrap style */
+                .dataTables_paginate {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 0.25rem;
+                    margin-top: 1rem;
+                }
+                .dataTables_paginate .paginate_button {
+                    border-radius: 0.5rem !important;
+                    margin: 0 4px !important;
+                    border: none !important;
+                    background: #fff !important;
+                    color: #5e72e4 !important;
+                    padding: 0.5rem 1.1rem !important;
+                    font-weight: 500;
+                    font-size: 1.1rem;
+                    box-shadow: 0 1px 3px rgba(94,114,228,0.07);
+                    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+                    outline: none !important;
+                }
+                .dataTables_paginate .paginate_button.current,
+                .dataTables_paginate .paginate_button:active,
+                .dataTables_paginate .paginate_button:hover {
+                    background: #5e72e4 !important;
+                    color: #fff !important;
+                    box-shadow: 0 2px 8px rgba(94,114,228,0.18);
+                }
+                .dataTables_paginate .paginate_button.disabled {
+                    background: #f0f0f0 !important;
+                    color: #bdbdbd !important;
+                    cursor: not-allowed !important;
+                    box-shadow: none !important;
+                }
+                .dataTables_length select {
+                    border-radius: 0.375rem;
+                    border: 1px solid #ced4da;
+                    padding: 0.2rem 0.7rem;
+                    background: #f8f9fa;
+                }
+                .dataTables_info {
+                    margin-top: 0.5rem;
+                    color: #6c757d;
+                }
+            </style>
+            @endpush
+            @push('js')
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (window.jQuery && $('#studentTable').length) {
+                        $('#studentTable').DataTable({
+                            language: {
+                                search: '',
+                                searchPlaceholder: 'Cari siswa, NISN, status, dll...',
+                                lengthMenu: 'Tampilkan _MENU_ entri',
+                                info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
+                                paginate: {
+                                    previous: '<span aria-label="Sebelumnya">&laquo;</span>',
+                                    next: '<span aria-label="Berikutnya">&raquo;</span>'
+                                }
+                            },
+                            pageLength: 30,
+                            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 text-end"f>>rt<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
+                        });
+                    }
+                });
+            </script>
+            @endpush
         </div>
     </main>
 
@@ -175,6 +335,12 @@
                     e.preventDefault();
                     alert('Silakan pilih minimal satu semester.');
                 }
+            });
+            
+            // Aktifkan tooltip Bootstrap
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
             });
             
             // Pie Chart - Graduation Status Distribution
@@ -418,114 +584,31 @@
                 }
             });
             
-            // Heatmap - Correlation Matrix
-            const correlationData = @json($correlationData);
-            const heatmapData = [];
-            
-            // Transform the correlation matrix into the format needed for the heatmap
-            for (let i = 0; i < correlationData.labels.length; i++) {
-                for (let j = 0; j < correlationData.labels.length; j++) {
-                    const value = correlationData.data[correlationData.labels[i]][correlationData.labels[j]];
-                    heatmapData.push({
-                        x: correlationData.labels[j],
-                        y: correlationData.labels[i],
-                        v: value
-                    });
-                }
-            }
-            
-            // Create a custom heatmap chart
-            const heatmapCtx = document.getElementById('heatmap-chart').getContext('2d');
-            
-            const getColor = function(value) {
-                // Define colors based on correlation strength
-                // Blue for positive, red for negative correlations
-                if (value === 1) return 'rgba(0, 0, 0, 0.8)';
-                if (value > 0.7) return 'rgba(0, 100, 255, 0.9)';
-                if (value > 0.5) return 'rgba(0, 150, 255, 0.8)';
-                if (value > 0.3) return 'rgba(100, 200, 255, 0.7)';
-                if (value > 0.1) return 'rgba(150, 225, 255, 0.6)';
-                if (value > -0.1) return 'rgba(255, 255, 255, 0.5)';
-                if (value > -0.3) return 'rgba(255, 200, 200, 0.6)';
-                if (value > -0.5) return 'rgba(255, 150, 150, 0.7)';
-                if (value > -0.7) return 'rgba(255, 100, 100, 0.8)';
-                return 'rgba(255, 50, 50, 0.9)';
-            };
-            
-            new Chart(heatmapCtx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Korelasi',
-                        data: heatmapData,
-                        backgroundColor: function(context) {
-                            if (!context.dataset.data[context.dataIndex]) return 'rgba(0, 0, 0, 0)';
-                            const value = context.dataset.data[context.dataIndex].v;
-                            return getColor(value);
-                        },
-                        pointRadius: 15,
-                        pointHoverRadius: 20
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'category',
-                            labels: correlationData.labels.slice().reverse(),
-                            offset: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return value;
-                                }
-                            },
-                            grid: {
-                                display: false
-                            }
-                        },
-                        x: {
-                            type: 'category',
-                            labels: correlationData.labels,
-                            offset: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return value;
-                                }
-                            },
-                            grid: {
-                                display: false
-                            }
-                        }
+            // Data histogram dari backend
+            const histogramData = @json($histogramData ?? []);
+            if (histogramData && histogramData.labels && histogramData.labels.length > 0) {
+                new Chart(document.getElementById('histogram-chart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: histogramData.labels,
+                        datasets: histogramData.datasets
                     },
-                    plugins: {
-                        legend: {
-                            display: false
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true },
+                            tooltip: { enabled: true }
                         },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    const data = context[0].dataset.data[context[0].dataIndex];
-                                    return `${data.y} vs ${data.x}`;
-                                },
-                                label: function(context) {
-                                    const value = context.dataset.data[context.dataIndex].v;
-                                    const formattedValue = parseFloat(value).toFixed(2);
-                                    let strength = '';
-                                    
-                                    if (Math.abs(value) >= 0.7) strength = 'Sangat Kuat';
-                                    else if (Math.abs(value) >= 0.5) strength = 'Kuat';
-                                    else if (Math.abs(value) >= 0.3) strength = 'Moderat';
-                                    else if (Math.abs(value) >= 0.1) strength = 'Lemah';
-                                    else strength = 'Sangat Lemah';
-                                    
-                                    return [`Korelasi: ${formattedValue}`, `Kekuatan: ${strength}`];
-                                }
-                            }
+                        scales: {
+                            x: { title: { display: true, text: 'Nilai' } },
+                            y: { title: { display: true, text: 'Jumlah Siswa' }, beginAtZero: true }
                         }
                     }
-                }
-            });
+                });
+            } else {
+                document.getElementById('histogram-chart').parentElement.innerHTML = '<div class="alert alert-warning mb-0">Tidak ada data untuk histogram pada filter ini.</div>';
+            }
         });
     </script>
 </x-layout> 

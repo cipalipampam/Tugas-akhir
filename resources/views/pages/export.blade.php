@@ -86,6 +86,12 @@
                                                         Data Hasil Prediksi Terbaru
                                                     </label>
                                                 </div>
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="radio" name="dataType" id="conditionalPassedData" value="conditional_passed">
+                                                    <label class="form-check-label" for="conditionalPassedData">
+                                                        Hanya Data Siswa Lulus Bersyarat
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -142,26 +148,7 @@
                                             <input type="text" id="judul" class="form-control" placeholder="Masukkan judul laporan">
                                         </div>
                                     </div>
-                                    <!-- <div class="col-md-4">
-                                        <div class="form-group mb-3">
-                                            <label for="tahunAjaran" class="form-label">Tahun Ajaran</label>
-                                            <select class="form-control" id="tahunAjaran">
-                                                <option value="2022-2023">2022-2023</option>
-                                                <option value="2023-2024" selected>2023-2024</option>
-                                            </select>
-                                        </div>
-                                    </div> -->
-                                    <div class="col-md-4">
-                                        <div class="form-group mb-3">
-                                            <label for="tahunAngkatan" class="form-label">Tahun Angkatan</label>
-                                            <select class="form-control" id="tahunAngkatan" name="tahunAngkatan">
-                                                <option value="">Semua Tahun</option>
-                                                @foreach($tahunAngkatan as $tahun)
-                                                    <option value="{{ $tahun }}">{{ $tahun }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <input type="hidden" id="tahunAngkatan" name="tahunAngkatan" value="">
                                 </div>
 
                                 <!-- Generate Button -->
@@ -222,11 +209,17 @@
                 formData.append('dataType', dataType);
                 
                 // Get included columns
-                formData.append('includeNISN', document.getElementById('includeNISN').checked);
-                formData.append('includeName', document.getElementById('includeName').checked);
-                formData.append('includeGrades', document.getElementById('includeGrades').checked);
-                formData.append('includeNonAcademic', document.getElementById('includeNonAcademic').checked);
-                formData.append('includeStatus', document.getElementById('includeStatus').checked);
+                const columns = [];
+                if (document.getElementById('includeNISN').checked) columns.push('nisn');
+                if (document.getElementById('includeName').checked) columns.push('name');
+                if (document.getElementById('includeGrades').checked) {
+                    columns.push('semester_1','semester_2','semester_3','semester_4','semester_5','semester_6','usp');
+                }
+                if (document.getElementById('includeNonAcademic').checked) {
+                    columns.push('sikap','kerapian','kerajinan');
+                }
+                if (document.getElementById('includeStatus').checked) columns.push('status');
+                columns.forEach(col => formData.append('columns[]', col));
                 
                 // Get title and school year
                 formData.append('title', document.getElementById('judul').value);
@@ -249,11 +242,16 @@
                 })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        // Cek jika error 422 (data kosong atau kolom tidak dipilih)
+                        return response.json().then(err => { throw err; });
                     }
                     return response.blob();
                 })
                 .then(blob => {
+                    // Jika blob kosong (karena error), jangan lanjutkan
+                    if (blob && blob.type && blob.type.indexOf('application/json') !== -1) {
+                        return;
+                    }
                     // Create download link
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -265,8 +263,11 @@
                     a.remove();
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan saat mengekspor data. Silakan coba lagi.');
+                    let msg = 'Terjadi kesalahan saat mengekspor data. Silakan coba lagi.';
+                    if (error && error.error) {
+                        msg = error.error;
+                    }
+                    alert(msg);
                 })
                 .finally(() => {
                     // Reset button state

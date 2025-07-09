@@ -30,31 +30,170 @@ class VisualisasiController extends Controller
             ->values();
         
         // Prediction distribution data
-        $statusCounts = $this->getPredictionDistribution($statusFilter, $tahunAngkatanFilter);
+        $statusCounts = $this->getPredictionDistribution($statusFilter, $tahunAngkatanFilter, $semesterFilter);
         
         // Academic vs Non-Academic data
-        $acadVsNonAcadData = $this->getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter);
+        $acadVsNonAcadData = $this->getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter, $semesterFilter);
         
         // Semester trend data
         $semesterTrendData = $this->getSemesterTrendData($statusFilter, $semesterFilter, $tahunAngkatanFilter);
         
-        // Correlation heatmap data
-        $correlationData = $this->getCorrelationData($statusFilter, $tahunAngkatanFilter);
+        // Hapus pemanggilan getCorrelationData dan variabel correlationData
+        // Tambahkan pembuatan data histogram
+        $histogramData = [
+            'labels' => [],
+            'datasets' => []
+        ];
+        $studentTableData = [];
+        $studentQuery = Student::query()->where('jenis_data', 'testing');
+        if ($tahunAngkatanFilter !== 'all') {
+            $studentQuery->where('tahun_angkatan', $tahunAngkatanFilter);
+        }
+        // Filter hanya siswa yang punya nilai di semester yang dipilih
+        if (!empty($semesterFilter)) {
+            $semesterKeys = array_map(fn($s) => "semester_$s", $semesterFilter);
+            $studentQuery->whereExists(function($q) use ($semesterKeys) {
+                $q->select(DB::raw(1))
+                    ->from('student_values')
+                    ->whereColumn('student_values.student_id', 'student.id')
+                    ->whereIn('student_values.key', $semesterKeys)
+                    ->where('student_values.value', '!=', '');
+            });
+        }
+        $students = $studentQuery->get();
+        $studentIds = $students->pluck('id');
+        // Ambil prediksi status
+        $predictions = Prediction::whereIn('test_student_id', $studentIds)
+            ->pluck('predicted_status', 'test_student_id');
+        // Ambil semua nilai student_values sekaligus
+        $studentValues = StudentValue::whereIn('student_id', $studentIds)
+            ->whereIn('key', array_merge(
+                array_map(fn($s) => "semester_$s", range(1,6)),
+                ['usp','sikap','kerapian','kerajinan']
+            ))
+            ->get()
+            ->groupBy('student_id');
+        foreach ($students as $student) {
+            $values = $studentValues[$student->id] ?? collect();
+            $row = [
+                'nama' => $student->name,
+                'nisn' => $student->nisn,
+                'tahun_angkatan' => $student->tahun_angkatan,
+            ];
+            // Nilai semester 1-6
+            for ($i=1; $i<=6; $i++) {
+                $row["semester_$i"] = optional($values->firstWhere('key', "semester_$i"))->value;
+            }
+            // USP, sikap, kerapian, kerajinan
+            $row['usp'] = optional($values->firstWhere('key', 'usp'))->value;
+            $row['sikap'] = optional($values->firstWhere('key', 'sikap'))->value;
+            $row['kerapian'] = optional($values->firstWhere('key', 'kerapian'))->value;
+            $row['kerajinan'] = optional($values->firstWhere('key', 'kerajinan'))->value;
+            // Status prediksi
+            $row['status_prediksi'] = $predictions[$student->id] ?? '-';
+            // Filter status jika dipilih
+            if ($statusFilter === 'all' || strtolower($row['status_prediksi']) === strtolower($statusFilter)) {
+                $studentTableData[] = $row;
+            }
+        }
+        
+        // Hapus pemanggilan getCorrelationData dan variabel correlationData
+        // Tambahkan pembuatan data histogram
+        $histogramData = [
+            'labels' => [],
+            'datasets' => []
+        ];
+        $studentCount = count($studentTableData);
+        if ($studentCount > 0) {
+            // Ambil nilai USP, rata-rata semester, sikap, kerapian, kerajinan
+            $usp = [];
+            $rataSemester = [];
+            $sikap = [];
+            $kerapian = [];
+            $kerajinan = [];
+            foreach ($studentTableData as $row) {
+                if (is_numeric($row['usp'])) $usp[] = floatval($row['usp']);
+                $semesterVals = [];
+                for ($i=1; $i<=6; $i++) {
+                    if (is_numeric($row["semester_$i"])) $semesterVals[] = floatval($row["semester_$i"]);
+                }
+                if (count($semesterVals)) $rataSemester[] = array_sum($semesterVals)/count($semesterVals);
+                if ($row['sikap'] !== null && $row['sikap'] !== '') $sikap[] = $row['sikap'];
+                if ($row['kerapian'] !== null && $row['kerapian'] !== '') $kerapian[] = $row['kerapian'];
+                if ($row['kerajinan'] !== null && $row['kerajinan'] !== '') $kerajinan[] = $row['kerajinan'];
+            }
+            // Helper untuk binning
+            $makeHistogram = function($data, $binCount, $min, $max) {
+                $bins = array_fill(0, $binCount, 0);
+                $binLabels = [];
+                $step = ($max - $min) / $binCount;
+                for ($i=0; $i<$binCount; $i++) {
+                    $binLabels[] = round($min + $i*$step, 1) . ' - ' . round($min + ($i+1)*$step, 1);
+                }
+                foreach ($data as $val) {
+                    $idx = (int) floor(($val - $min) / ($max - $min) * $binCount);
+                    if ($idx < 0) $idx = 0;
+                    if ($idx >= $binCount) $idx = $binCount-1;
+                    $bins[$idx]++;
+                }
+                return [$binLabels, $bins];
+            };
+            // USP
+            if (count($usp)) {
+                list($labels, $counts) = $makeHistogram($usp, 10, 0, 100);
+                $histogramData['labels'] = $labels;
+                $histogramData['datasets'][] = [
+                    'label' => 'USP',
+                    'data' => $counts,
+                    'backgroundColor' => 'rgba(54, 162, 235, 0.6)'
+                ];
+            }
+            // Rata-rata semester
+            if (count($rataSemester)) {
+                list($labels, $counts) = $makeHistogram($rataSemester, 10, 0, 100);
+                if (empty($histogramData['labels'])) $histogramData['labels'] = $labels;
+                $histogramData['datasets'][] = [
+                    'label' => 'Rata-rata Semester',
+                    'data' => $counts,
+                    'backgroundColor' => 'rgba(255, 99, 132, 0.6)'
+                ];
+            }
+            // Non-akademik (sikap, kerapian, kerajinan) - 3 bin: kurang baik, cukup baik, baik
+            $nonAkademikMap = ['kurang baik'=>0, 'cukup baik'=>1, 'baik'=>2];
+            $nonAkademikLabels = ['Kurang Baik', 'Cukup Baik', 'Baik'];
+            foreach ([['sikap',$sikap,'rgba(255, 206, 86, 0.7)'],['kerapian',$kerapian,'rgba(75, 192, 192, 0.7)'],['kerajinan',$kerajinan,'rgba(153, 102, 255, 0.7)']] as [$label,$data,$color]) {
+                if (count($data)) {
+                    $bins = [0,0,0];
+                    foreach ($data as $v) {
+                        $idx = $nonAkademikMap[strtolower($v)] ?? null;
+                        if ($idx !== null) $bins[$idx]++;
+                    }
+                    $histogramData['datasets'][] = [
+                        'label' => ucfirst($label),
+                        'data' => $bins,
+                        'backgroundColor' => $color
+                    ];
+                    if (empty($histogramData['labels'])) $histogramData['labels'] = $nonAkademikLabels;
+                }
+            }
+        }
         
         return view('pages.visualisasi-data', compact(
             'statusCounts',
             'acadVsNonAcadData',
             'semesterTrendData',
-            'correlationData',
             'statusFilter',
             'semesterFilter',
             'tahunAngkatanFilter',
-            'availableTahunAngkatan'
+            'availableTahunAngkatan',
+            'studentTableData',
+            'histogramData',
         ));
     }
     
-    private function getPredictionDistribution($statusFilter, $tahunAngkatanFilter)
+    private function getPredictionDistribution($statusFilter, $tahunAngkatanFilter, $semesterFilter)
     {
+        $semesterKeys = array_map(fn($s) => "semester_$s", $semesterFilter);
         $query = Prediction::select('predicted_status', DB::raw('count(*) as total'))
             ->join('student', 'predictions.test_student_id', '=', 'student.id')
             ->whereNotNull('predicted_status')
@@ -67,11 +206,19 @@ class VisualisasiController extends Controller
         if ($tahunAngkatanFilter !== 'all') {
             $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
         }
-            
+        // Filter hanya siswa yang punya nilai di semester yang dipilih
+        $query->whereExists(function($q) use ($semesterKeys) {
+            $q->select(DB::raw(1))
+                ->from('student_values')
+                ->whereColumn('student_values.student_id', 'student.id')
+                ->whereIn('student_values.key', $semesterKeys)
+                ->where('student_values.value', '!=', '');
+        });
+        
         $results = $query->groupBy('predicted_status')
             ->pluck('total', 'predicted_status')
             ->toArray();
-            
+        
         return [
             'lulus' => $results['lulus'] ?? 0,
             'lulus_bersyarat' => $results['lulus bersyarat'] ?? 0,
@@ -79,14 +226,15 @@ class VisualisasiController extends Controller
         ];
     }
     
-    private function getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter)
+    private function getAcademicVsNonAcademicData($statusFilter, $tahunAngkatanFilter, $semesterFilter)
     {
+        $semesterKeys = array_map(fn($s) => "semester_$s", $semesterFilter);
         // Query untuk nilai akademik
         $academicQuery = StudentValue::select('key', DB::raw('AVG(CAST(value AS DECIMAL(10,2))) as average'))
             ->join('student', 'student_values.student_id', '=', 'student.id')
             ->where('value', '!=', '')
             ->where('student.jenis_data', 'testing')
-            ->whereIn('key', ['semester_1', 'semester_2', 'semester_3', 'semester_4', 'semester_5', 'semester_6', 'usp']);
+            ->whereIn('key', array_merge($semesterKeys, ['usp']));
             
         // Query untuk nilai non-akademik
         $nonAcademicQuery = StudentValue::select('key', 'value')
@@ -122,16 +270,16 @@ class VisualisasiController extends Controller
             })
             ->toArray();
         
+        // Hanya semester yang dipilih
+        $academic = [];
+        foreach ($semesterKeys as $key) {
+            $label = 'Rata-Rata ' . ucfirst(str_replace('_', ' ', $key));
+            $academic[$label] = $academicResults[$key] ?? 0;
+        }
+        $academic['USP'] = $academicResults['usp'] ?? 0;
+        
         return [
-            'academic' => [
-                'Rata-Rata Semester 1' => $academicResults['semester_1'] ?? 0,
-                'Rata-Rata Semester 2' => $academicResults['semester_2'] ?? 0,
-                'Rata-Rata Semester 3' => $academicResults['semester_3'] ?? 0,
-                'Rata-Rata Semester 4' => $academicResults['semester_4'] ?? 0,
-                'Rata-Rata Semester 5' => $academicResults['semester_5'] ?? 0,
-                'Rata-Rata Semester 6' => $academicResults['semester_6'] ?? 0,
-                'USP' => $academicResults['usp'] ?? 0
-            ],
+            'academic' => $academic,
             'non_academic' => [
                 'sikap' => $nonAcademicResults['sikap'] ?? 0,
                 'kerajinan' => $nonAcademicResults['kerajinan'] ?? 0,
@@ -170,7 +318,7 @@ class VisualisasiController extends Controller
             }
             
             $averages = [];
-            for ($i = 1; $i <= 6; $i++) {
+            foreach ($semesterFilter as $i) {
                 $query = StudentValue::where('key', "semester_$i")
                     ->where('value', '!=', '')
                     ->whereIn('student_id', $studentIds)
@@ -188,19 +336,22 @@ class VisualisasiController extends Controller
                 $trendData[$status] = $averages;
             }
         }
-        
+        $labels = array_map(fn($i) => 'Semester ' . $i, $semesterFilter);
         return [
-            'labels' => ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'],
+            'labels' => $labels,
             'datasets' => $trendData
         ];
     }
  
-    private function getCorrelationData($statusFilter, $tahunAngkatanFilter)
+    private function getCorrelationData($statusFilter, $tahunAngkatanFilter, $semesterFilter)
     {
+        $semesterKeys = array_map(fn($s) => "semester_$s", $semesterFilter);
+        $allKeys = array_merge($semesterKeys, ['usp', 'sikap', 'kerajinan', 'kerapian']);
         $query = StudentValue::select('key', 'value')
             ->join('student', 'student_values.student_id', '=', 'student.id')
             ->where('value', '!=', '')
-            ->where('student.jenis_data', 'testing');
+            ->where('student.jenis_data', 'testing')
+            ->whereIn('key', $allKeys);
             
         if ($tahunAngkatanFilter !== 'all') {
             $query->where('student.tahun_angkatan', $tahunAngkatanFilter);
@@ -218,7 +369,7 @@ class VisualisasiController extends Controller
                     return floatval($value);
                 })->toArray();
             });
-            
+        
         $labels = array_keys($data->toArray());
         $correlationMatrix = [];
         
