@@ -732,7 +732,16 @@
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: {display: true, position: 'top'},
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                filter: function(item, chart) {
+                                    // Sembunyikan label 'Nilai Siswa' dari legend visual
+                                    return item.text !== 'Nilai Siswa';
+                                }
+                            }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -766,9 +775,9 @@
                 data: {
                     labels: xNonAkademik,
                     datasets: [
-                        {label: 'Kurang', data: kurang, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Cukup', data: cukup, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Baik', data: baik, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Tidak Lulus', data: kurang, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Lulus Bersyarat', data: cukup, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Tidak Lulus', data: baik, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
                         // Titik indikator
                         {
                             label: 'Nilai Siswa',
@@ -793,7 +802,16 @@
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: {display: true, position: 'top'},
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                filter: function(item, chart) {
+                                    // Sembunyikan label 'Nilai Siswa' dari legend visual
+                                    return item.text !== 'Nilai Siswa';
+                                }
+                            }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {

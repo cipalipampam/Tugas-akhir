@@ -11,25 +11,36 @@ use Illuminate\Support\Facades\DB;
 class DashboardController extends Controller
 {
     public function index(){
-        // Get student counts by type
+        // Data siswa training
         $trainingCount = Student::where('jenis_data', 'training')->count();
+        $trainingStatusCounts = Student::select('true_status', DB::raw('count(*) as total'))
+            ->where('jenis_data', 'training')
+            ->whereNotNull('true_status')
+            ->groupBy('true_status')
+            ->pluck('total', 'true_status')
+            ->toArray();
+        $trainingStats = [
+            'count' => $trainingCount,
+            'lulus' => $trainingStatusCounts['lulus'] ?? 0,
+            'lulus_bersyarat' => $trainingStatusCounts['lulus bersyarat'] ?? 0,
+            'tidak_lulus' => $trainingStatusCounts['tidak lulus'] ?? 0,
+        ];
+
+        // Data siswa testing
         $testingCount = Student::where('jenis_data', 'testing')->count();
-        $totalStudents = $trainingCount + $testingCount;
-        
-        // Get graduation distribution based on predicted_status from predictions table
-        $statusCounts = Prediction::select('predicted_status', DB::raw('count(*) as total'))
+        $testingStatusCounts = Prediction::select('predicted_status', DB::raw('count(*) as total'))
             ->whereNotNull('predicted_status')
+            ->whereHas('student', function($q) {
+                $q->where('jenis_data', 'testing');
+            })
             ->groupBy('predicted_status')
             ->pluck('total', 'predicted_status')
             ->toArray();
-            
-        // Extract individual counts or set to 0 if not present
-        $graduationStats = [
-            'lulus' => $statusCounts['lulus'] ?? 0,
-            'lulus_bersyarat' => $statusCounts['lulus bersyarat'] ?? 0,
-            'tidak_lulus' => $statusCounts['tidak lulus'] ?? 0,
-            'training_count' => $trainingCount,
-            'testing_count' => $testingCount
+        $testingStats = [
+            'count' => $testingCount,
+            'lulus' => $testingStatusCounts['lulus'] ?? 0,
+            'lulus_bersyarat' => $testingStatusCounts['lulus bersyarat'] ?? 0,
+            'tidak_lulus' => $testingStatusCounts['tidak lulus'] ?? 0,
         ];
         
         // Get semester trend data
@@ -51,8 +62,8 @@ class DashboardController extends Controller
         }
         
         return view('dashboard.index', compact(
-            'totalStudents', 
-            'graduationStats',
+            'trainingStats',
+            'testingStats',
             'semesterTrendData',
             'semesterAverages'
         ));
