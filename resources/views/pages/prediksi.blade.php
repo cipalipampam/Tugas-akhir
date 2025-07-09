@@ -193,8 +193,8 @@
                                                     <select name="data[kerapian]" class="form-select">
                                                         <option value="">Pilih</option>
                                                         <option value="baik">Baik</option>
-                                                        <option value="cukup baik">Cukup Baik</option>
-                                                        <option value="kurang baik">Kurang Baik</option>
+                                                        <option value="cukup baik">Cukup</option>
+                                                        <option value="kurang baik">Kurang</option>
                                                     </select>
                                                 </div>
                                                 <div class="form-group">
@@ -202,8 +202,8 @@
                                                     <select name="data[kerajinan]" class="form-select">
                                                         <option value="">Pilih</option>
                                                         <option value="baik">Baik</option>
-                                                        <option value="cukup baik">Cukup Baik</option>
-                                                        <option value="kurang baik">Kurang Baik</option>
+                                                        <option value="cukup baik">Cukup</option>
+                                                        <option value="kurang baik">Kurang</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -688,9 +688,9 @@
             ];
             // Kurva Fuzzy Akademik
             const xAkademik = Array.from({length: 101}, (_, i) => i); // 0-100
-            const rendah = xAkademik.map(x => x <= 60 ? 1 : (x > 60 && x < 70 ? (70-x)/10 : 0));
-            const sedang = xAkademik.map(x => x < 60 ? 0 : (x >= 60 && x < 70 ? (x-60)/10 : (x >= 70 && x < 80 ? (80-x)/10 : 0)));
-            const tinggi = xAkademik.map(x => x < 70 ? 0 : (x >= 70 && x < 80 ? (x-70)/10 : 1));
+            const Tidak_Lulus = xAkademik.map(x => x <= 60 ? 1 : (x > 60 && x < 70 ? (70-x)/10 : 0));
+            const Lulus_Bersyarat = xAkademik.map(x => x < 60 ? 0 : (x >= 60 && x < 70 ? (x-60)/10 : (x >= 70 && x < 80 ? (80-x)/10 : 0)));
+            const Lulus = xAkademik.map(x => x < 70 ? 0 : (x >= 70 && x < 80 ? (x-70)/10 : 1));
             // Cari y untuk titik indikator
             indikatorAkademik.forEach(function(pt){
                 const x = pt.x;
@@ -705,9 +705,9 @@
                 data: {
                     labels: xAkademik,
                     datasets: [
-                        {label: 'Rendah', data: rendah, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Sedang', data: sedang, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Tinggi', data: tinggi, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Tidak Lulus', data: Tidak_Lulus, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Lulus Bersyarat', data: Lulus_Bersyarat, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
+                        {label: 'Lulus', data: Lulus, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
                         // Titik indikator
                         {
                             label: 'Nilai Siswa',
