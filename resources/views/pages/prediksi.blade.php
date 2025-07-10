@@ -338,29 +338,6 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <!-- Tambahkan dua grafik fuzzy di bawahnya -->
-                                            <div class="row mt-4">
-                                                <div class="col-md-6 mb-4">
-                                                    <div class="card border shadow-sm">
-                                                        <div class="card-header bg-light p-3">
-                                                            <h6 class="mb-0 text-primary"><i class="fas fa-chart-area me-2"></i>Kurva Fuzzy Akademik</h6>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <canvas id="fuzzyAcademicChart" height="220"></canvas>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6 mb-4">
-                                                    <div class="card border shadow-sm">
-                                                        <div class="card-header bg-light p-3">
-                                                            <h6 class="mb-0 text-primary"><i class="fas fa-chart-area me-2"></i>Kurva Fuzzy Non-Akademik</h6>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <canvas id="fuzzyNonAcademicChart" height="220"></canvas>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
                                             @endif
                                         </div>
                                     </div>
@@ -647,85 +624,131 @@
         @endif
         @if(isset($manualPrediction['ratios']) && count($manualPrediction['ratios']) > 0)
         <script>
-            // Kurva Derajat Keanggotaan Fuzzy (sudah ada)
+            // Kurva Derajat Keanggotaan Fuzzy dengan X dinormalisasi 0-1
             const fuzzyLabels = @json(collect($manualPrediction['ratios'])->pluck('class'));
             const fuzzyValues = @json(collect($manualPrediction['ratios'])->pluck('weight_ratio'));
+            
+            // Generate data untuk 3 kurva fuzzy membership (X: 0-1)
+            const xValues = Array.from({length: 101}, (_, i) => i / 100); // 0, 0.01, ..., 1.0
+            
+            function tidakLulusMembership(x) {
+                if (x <= 0.6) return 1;
+                if (x > 0.6 && x <= 0.65) return (0.65 - x) / (0.05);
+                return 0;
+            }
+            function lulusBersyaratMembership(x) {
+                if (x < 0.6) return 0;
+                if (x >= 0.6 && x <= 0.65) return (x - 0.6) / (0.05);
+                if (x > 0.65 && x <= 0.75) return 1;
+                if (x > 0.75 && x <= 0.8) return (0.8 - x) / (0.05);
+                return 0;
+            }
+            function lulusMembership(x) {
+                if (x < 0.75) return 0;
+                if (x >= 0.75 && x <= 0.8) return (x - 0.75) / (0.05);
+                if (x > 0.8 && x <= 1.0) return 1;
+                return 0;
+            }
+            const tidakLulusData = xValues.map(x => tidakLulusMembership(x));
+            const lulusBersyaratData = xValues.map(x => lulusBersyaratMembership(x));
+            const lulusData = xValues.map(x => lulusMembership(x));
+
+            // Titik prediksi: X = nilai akademik ternormalisasi siswa, Y = membership pada kelas prediksi di X
+            const predictedClass = '{{ $manualPrediction['status'] ?? '' }}';
+            const akademikNormalized = {{ $akademik_normalized ?? 0 }};
+            let dotY = 0;
+            if (predictedClass.toLowerCase() === 'tidak lulus') dotY = tidakLulusMembership(akademikNormalized);
+            if (predictedClass.toLowerCase() === 'lulus bersyarat') dotY = lulusBersyaratMembership(akademikNormalized);
+            if (predictedClass.toLowerCase() === 'lulus') dotY = lulusMembership(akademikNormalized);
+            // Ambil μ hasil prediksi dari backend
+            @php
+                $predictedClass = $manualPrediction['status'] ?? '';
+                $ratios = $manualPrediction['ratios'] ?? [];
+                $mu_prediksi = 0;
+                foreach ($ratios as $ratio) {
+                    if (strtolower($ratio->class) == strtolower($predictedClass)) {
+                        $mu_prediksi = $ratio->weight_ratio;
+                        break;
+                    }
+                }
+            @endphp
+            const muPrediksi = {{ $mu_prediksi ?? 0 }};
+            // Cari X pada kurva membership kelas prediksi sehingga membership(X) = muPrediksi
+            let dotX = 0;
+            if (predictedClass.toLowerCase() === 'tidak lulus') {
+                for (let i = 0; i < xValues.length; i++) {
+                    if (Math.abs(tidakLulusMembership(xValues[i]) - muPrediksi) < 0.01) {
+                        dotX = xValues[i];
+                        break;
+                    }
+                }
+            }
+            if (predictedClass.toLowerCase() === 'lulus bersyarat') {
+                for (let i = 0; i < xValues.length; i++) {
+                    if (Math.abs(lulusBersyaratMembership(xValues[i]) - muPrediksi) < 0.01) {
+                        dotX = xValues[i];
+                        break;
+                    }
+                }
+            }
+            if (predictedClass.toLowerCase() === 'lulus') {
+                for (let i = 0; i < xValues.length; i++) {
+                    if (Math.abs(lulusMembership(xValues[i]) - muPrediksi) < 0.01) {
+                        dotX = xValues[i];
+                        break;
+                    }
+                }
+            }
+            // Data untuk dot
+            const predictionDotData = xValues.map((x, idx) => (Math.abs(x - dotX) < 0.005 ? muPrediksi : null));
+
             const ctxFuzzy = document.getElementById('fuzzyCurveChart').getContext('2d');
             new Chart(ctxFuzzy, {
                 type: 'line',
                 data: {
-                    labels: fuzzyLabels,
-                    datasets: [{
-                        label: 'Derajat Keanggotaan (μ)',
-                        data: fuzzyValues,
-                        borderColor: 'rgb(54, 162, 235)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        fill: true,
-                        tension: 0
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: { beginAtZero: true, max: 1 }
-                    }
-                }
-            });
-
-            // Titik indikator input siswa (banyak titik)
-            @php
-                $akademikColors = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4'];
-                $nonAkademikColors = ['#008080','#f032e6','#fabebe'];
-            @endphp
-            const indikatorAkademik = [
-                @foreach($akademikPoints as $i => $pt)
-                    {x: {{ $pt['x'] }}, y: 0, label: '{{ $pt['label'] }}', backgroundColor: '{{ $akademikColors[$i%6] }}'},
-                @endforeach
-            ];
-            const indikatorNonAkademik = [
-                @foreach($nonAkademikPoints as $i => $pt)
-                    {x: {{ $pt['x'] }}, y: 0, label: '{{ $pt['label'] }}', backgroundColor: '{{ $nonAkademikColors[$i%3] }}'},
-                @endforeach
-            ];
-            // Kurva Fuzzy Akademik
-            const xAkademik = Array.from({length: 101}, (_, i) => i); // 0-100
-            const Tidak_Lulus = xAkademik.map(x => x <= 60 ? 1 : (x > 60 && x < 70 ? (70-x)/10 : 0));
-            const Lulus_Bersyarat = xAkademik.map(x => x < 60 ? 0 : (x >= 60 && x < 70 ? (x-60)/10 : (x >= 70 && x < 80 ? (80-x)/10 : 0)));
-            const Lulus = xAkademik.map(x => x < 70 ? 0 : (x >= 70 && x < 80 ? (x-70)/10 : 1));
-            // Cari y untuk titik indikator
-            indikatorAkademik.forEach(function(pt){
-                const x = pt.x;
-                pt.y = Math.max(
-                    x <= 60 ? 1 : (x > 60 && x < 70 ? (70-x)/10 : 0),
-                    x < 60 ? 0 : (x >= 60 && x < 70 ? (x-60)/10 : (x >= 70 && x < 80 ? (80-x)/10 : 0)),
-                    x < 70 ? 0 : (x >= 70 && x < 80 ? (x-70)/10 : 1)
-                );
-            });
-            new Chart(document.getElementById('fuzzyAcademicChart').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: xAkademik,
+                    labels: xValues,
                     datasets: [
-                        {label: 'Tidak Lulus', data: Tidak_Lulus, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Lulus Bersyarat', data: Lulus_Bersyarat, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Lulus', data: Lulus, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        // Titik indikator
                         {
-                            label: 'Nilai Siswa',
-                            data: indikatorAkademik,
-                            type: 'scatter',
-                            showLine: false,
-                            pointBackgroundColor: indikatorAkademik.map(pt=>pt.backgroundColor),
-                            pointBorderColor: 'yellow',
-                            pointRadius: 7,
-                            pointStyle: 'circle',
+                            label: 'Tidak Lulus',
+                            data: tidakLulusData,
+                            borderColor: 'rgb(244, 67, 54)',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
                             borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Lulus Bersyarat',
+                            data: lulusBersyaratData,
+                            borderColor: 'rgb(255, 152, 0)',
+                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Lulus',
+                            data: lulusData,
+                            borderColor: 'rgb(76, 175, 80)',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Prediksi: ' + predictedClass,
+                            data: predictionDotData,
+                            borderColor: 'rgb(33, 150, 243)',
+                            backgroundColor: 'rgb(33, 150, 243)',
+                            borderWidth: 3,
                             fill: false,
-                            order: 99,
-                            datalabels: {
-                                align: 'top',
-                                anchor: 'end',
-                                formatter: function(value, ctx) { return value.label; }
-                            }
+                            tension: 0,
+                            pointRadius: 8,
+                            pointStyle: 'circle',
+                            pointHoverRadius: 10
                         }
                     ]
                 },
@@ -734,96 +757,39 @@
                     plugins: {
                         legend: {
                             display: true,
-                            position: 'top',
-                            labels: {
-                                filter: function(item, chart) {
-                                    // Sembunyikan label 'Nilai Siswa' dari legend visual
-                                    return item.text !== 'Nilai Siswa';
-                                }
-                            }
+                            position: 'top'
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    if(context.dataset.label==='Nilai Siswa') return context.raw.label+': x='+context.raw.x+', μ(x)='+context.raw.y.toFixed(2);
-                                    return context.dataset.label+': μ('+context.label+') = '+context.formattedValue;
+                                    if (context.dataset.label.startsWith('Prediksi:')) {
+                                        return context.dataset.label + ' (x = ' + dotX.toFixed(3) + ', μ = ' + muPrediksi.toFixed(3) + ')';
+                                    }
+                                    return context.dataset.label + ': μ = ' + context.formattedValue;
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: {title: {display: true, text: 'Nilai Akademik (0-100)'}, min: 0, max: 100, ticks: {stepSize: 10}},
-                        y: {title: {display: true, text: 'μ(x)'}, min: 0, max: 1}
-                    }
-                }
-            });
-            // Kurva Fuzzy Non-Akademik
-            const xNonAkademik = Array.from({length: 101}, (_, i) => i/100); // 0-1
-            const kurang = xNonAkademik.map(x => x <= 0.5 ? 1 - (x/0.5) : 0);
-            const cukup = xNonAkademik.map(x => x <= 0.5 ? x/0.5 : (x <= 1 ? (1-x)/0.5 : 0));
-            const baik = xNonAkademik.map(x => x < 0.5 ? 0 : (x >= 0.5 && x < 1 ? (x-0.5)/0.5 : 1));
-            indikatorNonAkademik.forEach(function(pt){
-                const x = pt.x;
-                pt.y = Math.max(
-                    x <= 0.5 ? 1 - (x/0.5) : 0,
-                    x <= 0.5 ? x/0.5 : (x <= 1 ? (1-x)/0.5 : 0),
-                    x < 0.5 ? 0 : (x >= 0.5 && x < 1 ? (x-0.5)/0.5 : 1)
-                );
-            });
-            new Chart(document.getElementById('fuzzyNonAcademicChart').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: xNonAkademik,
-                    datasets: [
-                        {label: 'Tidak Lulus', data: kurang, borderColor: 'rgb(244,67,54)', backgroundColor: 'rgba(244,67,54,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Lulus Bersyarat', data: cukup, borderColor: 'rgb(255,152,0)', backgroundColor: 'rgba(255,152,0,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        {label: 'Tidak Lulus', data: baik, borderColor: 'rgb(76,175,80)', backgroundColor: 'rgba(76,175,80,0.08)', borderWidth: 3, fill: true, pointRadius: 0, tension: 0.1},
-                        // Titik indikator
-                        {
-                            label: 'Nilai Siswa',
-                            data: indikatorNonAkademik,
-                            type: 'scatter',
-                            showLine: false,
-                            pointBackgroundColor: indikatorNonAkademik.map(pt=>pt.backgroundColor),
-                            pointBorderColor: 'yellow',
-                            pointRadius: 7,
-                            pointStyle: 'circle',
-                            borderWidth: 2,
-                            fill: false,
-                            order: 99,
-                            datalabels: {
-                                align: 'top',
-                                anchor: 'end',
-                                formatter: function(value, ctx) { return value.label; }
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Nilai Akademik Ternormalisasi (0-1)'
+                            },
+                            min: 0,
+                            max: 1,
+                            ticks: {
+                                stepSize: 0.05
                             }
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
+                        },
+                        y: {
+                            title: {
                             display: true,
-                            position: 'top',
-                            labels: {
-                                filter: function(item, chart) {
-                                    // Sembunyikan label 'Nilai Siswa' dari legend visual
-                                    return item.text !== 'Nilai Siswa';
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    if(context.dataset.label==='Nilai Siswa') return context.raw.label+': x='+context.raw.x+', μ(x)='+context.raw.y.toFixed(2);
-                                    return context.dataset.label+': μ('+context.label+') = '+context.formattedValue;
-                                }
-                            }
+                                text: 'Derajat Keanggotaan (μ)'
+                            },
+                            beginAtZero: true,
+                            max: 1
                         }
-                    },
-                    scales: {
-                        x: {title: {display: true, text: 'Nilai Non-Akademik (0-1)'}, min: 0, max: 1, ticks: {stepSize: 0.1}},
-                        y: {title: {display: true, text: 'μ(x)'}, min: 0, max: 1}
                     }
                 }
             });

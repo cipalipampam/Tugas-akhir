@@ -179,10 +179,17 @@ class PrediksiController extends Controller
             'ratios' => $ratios
         ];
         $studentValues = $testStudent->studentValues->pluck('value', 'key')->toArray();
+        // Hitung rata-rata nilai akademik (semester_1 sampai semester_6)
+        $akademik = collect(range(1,6))->map(function($i) use ($studentValues) {
+            return isset($studentValues['semester_'.$i]) ? floatval($studentValues['semester_'.$i]) : null;
+        })->filter()->avg();
+        // Normalisasi ke 0-1 (anggap skala 0-100)
+        $akademik_normalized = $akademik !== null ? round($akademik / 100, 4) : 0;
         return view('pages.prediksi', [
             'manualPrediction' => $manualPrediction,
             'studentValues' => $studentValues,
-            'activeInputMethod' => 'manual'
+            'activeInputMethod' => 'manual',
+            'akademik_normalized' => $akademik_normalized
         ])->with('success', 'Prediksi berhasil dilakukan.');
     }
 
